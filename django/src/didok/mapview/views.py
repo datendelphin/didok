@@ -5,11 +5,11 @@ import re
 
 def route_map_view(request):
 
-    stateF = open('/home/spreng/updatescript/replication/state.txt', 'r')
+    stateF = open('state.txt', 'r')
     for line in stateF.readlines():
         lastline = line
 
-    dateRe = re.compile('timestamp=(\d{4})-(\d{2})-(\d{2})T(\d{2})\\\\:(\d{2})\\\\:\d{2}Z')
+    dateRe = re.compile('timestamp=(\d{4})-(\d{2})-(\d{2})T(\d{2})\\\\?:(\d{2})\\\\?:\d{2}Z')
     dateTime = re.sub(dateRe, '\\3.\\2.\\1 \\4:\\5', lastline)
 
     context = {'dataTime' : dateTime}
