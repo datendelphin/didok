@@ -144,9 +144,10 @@ def import_didok(db, options, csv_file):
 
 
 
-def import_osm(db, options):
+def import_osm(db, snapshot_db, options):
     print "import osm stops into %s" % (options.osm_table)
     cur = db.cursor()
+    snapshot_cur = snapshot_db.cursor()
     if table_exists(db, options.osm_table):
         cur.execute("DELETE FROM %s" % options.osm_table)
     else:
@@ -165,100 +166,71 @@ def import_osm(db, options):
              % (options.osm_table))
 
     #nodes
-    cur.execute("""
-        INSERT INTO %s
-            SELECT * FROM 
-                dblink('dbname=%s', '
-                    SELECT
-                        id,
-                        tags -> ''name'' AS name,
-                        ''n'' as type,
-                        (tags -> ''uic_ref'')::INT AS uic_ref,
-                        tags,
-                        user_id,
-                        version,
-                        geom
-                    FROM nodes
-                    WHERE tags ? ''uic_ref''
-                    AND   tags -> ''uic_ref'' ~  E''^\\\\d+$'' 
-                ')
-                AS t(
-                    id bigint,
-                    osm_name text,
-                    osm_type text,
-                    osm_uic_ref INT,
-                    tags hstore,
-                    user_id   INT,
-                    version   INT,
-                    osm_geom geometry
-                )""" % (options.osm_table, options.snapshot_db))
+    snapshot_cur.execute("""
+        SELECT
+            id,
+            tags -> 'name' AS name,
+            'n' as type,
+            (tags -> 'uic_ref')::INT AS uic_ref,
+            tags,
+            user_id,
+            version,
+            geom
+        FROM nodes
+        WHERE tags ? 'uic_ref'
+        AND   tags -> 'uic_ref' ~  E'^\\\\d+$'""")
+
+    cur.executemany("""
+        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
+        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
 
     #ways
-    cur.execute("""
-        INSERT INTO %s
-            SELECT * FROM 
-                dblink('dbname=%s', '
-                    SELECT
-                        w.id,
-                        w.tags -> ''name'' AS name,
-                        ''w'' as type,
-                        (w.tags -> ''uic_ref'')::INT AS uic_ref,
-                        w.tags,
-                        w.user_id,
-                        w.version,
-                        ST_CENTROID(ST_MAKELINE(n.geom))
-                    FROM ways w, nodes n
-                    WHERE w.tags ? ''uic_ref''
-                    AND   w.tags -> ''uic_ref'' ~  E''^\\\\d+$''
-                    AND   n.id = ANY (w.nodes)
-                    GROUP BY w.id
-                ')
-                AS t(
-                    id bigint,
-                    osm_name text,
-                    osm_type text,
-                    osm_uic_ref INT,
-                    tags hstore,
-                    user_id   INT,
-                    version   INT,
-                    osm_geom geometry
-                )""" % (options.osm_table, options.snapshot_db))
+    snapshot_cur.execute("""
+        SELECT
+            w.id,
+            w.tags -> 'name' AS name,
+            'w' as type,
+            (w.tags -> 'uic_ref')::INT AS uic_ref,
+            w.tags,
+            w.user_id,
+            w.version,
+            ST_CENTROID(ST_MAKELINE(n.geom))
+        FROM ways w, nodes n
+        WHERE w.tags ? 'uic_ref'
+        AND   w.tags -> 'uic_ref' ~  E'^\\\\d+$'
+        AND n.id = ANY (w.nodes)
+        GROUP BY w.id""")
+
+    cur.executemany("""
+        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
+        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
 
     #relations
-    cur.execute("""
-        INSERT INTO %s
-            SELECT * FROM
-                dblink('dbname=%s', '
-                    SELECT 
-                        r.id,
-                        r.tags -> ''name'' AS name,
-                        ''r'' as type,
-                        (r.tags -> ''uic_ref'')::INT AS uic_ref,
-                        r.tags,
-                        r.user_id,
-                        r.version,
-                        ST_CENTROID(ST_COLLECT(
-                            CASE
-                                WHEN m.member_type = ''N'' THEN
-                                    (SELECT ST_COLLECT(n.geom) FROM nodes n WHERE m.member_id = n.id)
-                                WHEN m.member_type = ''W'' THEN
-                                    (SELECT ST_COLLECT(n.geom) FROM nodes n, ways w WHERE n.id = ANY (w.nodes) AND w.id = m.member_id)
-                            END))
-                    FROM relations r JOIN relation_members m ON r.id = m.relation_id
-                    WHERE r.tags ? ''uic_ref''
-                      AND r.tags -> ''uic_ref'' ~  E''^\\\\d+$''
-                    GROUP BY r.id
-                ')
-                AS t(
-                    id bigint,
-                    osm_name text,
-                    osm_type text,
-                    osm_uic_ref INT,
-                    tags hstore,
-                    user_id   INT,
-                    version   INT,
-                    osm_geom geometry
-                )""" % (options.osm_table, options.snapshot_db))
+    snapshot_cur.execute("""
+        SELECT
+            r.id,
+            r.tags -> 'name' AS name,
+            'r' as type,
+            (r.tags -> 'uic_ref')::INT AS uic_ref,
+            r.tags,
+            r.user_id,
+            r.version,
+            ST_CENTROID(ST_COLLECT(
+                CASE
+                    WHEN m.member_type = 'N' THEN
+                        (SELECT ST_COLLECT(n.geom) FROM nodes n WHERE m.member_id = n.id)
+                    WHEN m.member_type = 'W' THEN
+                        (SELECT ST_COLLECT(n.geom) FROM nodes n, ways w WHERE n.id = ANY (w.nodes) AND w.id = m.member_id)
+                END))
+        FROM relations r JOIN relation_members m ON r.id = m.relation_id
+        WHERE r.tags ? 'uic_ref'
+          AND r.tags -> 'uic_ref' ~  E'^\\\\d+$'
+        GROUP BY r.id""")
+
+    cur.executemany("""
+        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
+        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+
     db.commit()
 
     if table_exists(db, options.username_table):
@@ -270,15 +242,11 @@ def import_osm(db, options):
                 name      TEXT
             )""" % (options.username_table))
 
-    cur.execute("""
-        INSERT INTO %s
-            SELECT id, name FROM
-                dblink('dbname=%s',
-                       'SELECT * FROM users')
-                AS t(
-                    id        INT,
-                    name      TEXT
-                )""" % (options.username_table, options.snapshot_db))
+    snapshot_cur.execute("""SELECT * FROM users""")
+
+    cur.executemany("""INSERT INTO %s VALUES (%%s, %%s)""" % (options.username_table),
+            snapshot_cur.fetchall())
+
     db.commit()
 
 def matches(db, options):
@@ -353,9 +321,11 @@ if __name__ == "__main__":
     else:
         db = psycopg2.connect('dbname=%s user=%s password=%s' % 
                 (options.database, options.username, options.password))
+        snapshot_db = psycopg2.connect('dbname=%s user=%s password=%s' % 
+                (options.snapshot_db, options.username, options.password))
         if not options.update:
             import_didok(db, options, args[0])
-        import_osm(db, options)
+        import_osm(db, snapshot_db, options)
         matches(db, options)
 
 
