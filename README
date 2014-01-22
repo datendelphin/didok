@@ -1,0 +1,11 @@
+Web interface for comparing DIDOK and OSM data
+
+Installation:
+
+import osm data with osmosis into a snapshot database
+get didok stop list from http://www.bav.admin.ch/dokumentation/publikationen/00475/01497/index.html
+convert the xlsx file into csv using oocalc for example
+import the csv file with db-import/import_stops.py
+
+run the web server with either wsgi (wsgi file in django/apache/django.wsgi)
+or with django/src/didok/manage.py runserver

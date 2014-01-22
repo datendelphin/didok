@@ -1,0 +1,65 @@
+<html>
+<head><title>DIDOK Haltestelle</title></head>
+<body>
+<div class=" dllist">
+{% if not object.existent %}
+<div class='dlline'>
+	<span class='dlitem'><emph>This stop is marked as invalid!</emph></span>
+</div>
+{% endif %}
+<div class='dlline'>
+    <span class='dlitem'>UIC:</span>
+    <span class='dldef'>{{object.dstnr}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>name:</span>
+    <span class='dldef'>{{object.name}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>goabk:</span>
+    <span class='dldef'>{{object.goabk}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>GdeNr:</span>
+    <span class='dldef'>{{object.gemeinde_nr}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>Gemeinde:</span>
+    <span class='dldef'>{{object.gemeinde}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>Verkehrsmittel:</span>
+    <span class='dldef'>{{object.verkehrsmittel}}</span>
+</div>
+<div class='dlline'>
+    <span class='dlitem'>H&ouml;he:</span>
+    <span class='dldef'>{{object.hoehe}}</span>
+</div>
+</div>
+
+<p>
+{% if object.connected_with %}
+<h2>Verbunden mit:</h2>
+<div class=" dllist">
+{% for id, name in object.connected_with %}
+<div class='dlline'>
+{% comment %}  <form action="" onsubmit="return stopDisconnect('{{id}}', '{{object.dstnr}}',this);">{{name}} <input type="image" src="/media/static/js/theme/default/img/close.gif"></form></span>{% endcomment %}
+<a href="http://www.openstreetmap.org/browse/node/{{id}}">{{name}} ({{id}})</a>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div id="mark_{{object.id}}">
+{% if object.existent %}
+<button type="button" onclick="didok_invalidate({{object.id}})">Mark Stop as invalid</button>
+{% else %}
+<button type="button" onclick="didok_revalidate({{object.id}})">Mark Stop as valid</button>
+{% endif %}
+</div>
+{% endif %}
+<p>
+
+
+
+</body>
+<html>

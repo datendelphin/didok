@@ -1,0 +1,46 @@
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>DIDOK Haltestellen-Import</title>
+
+	<link rel="stylesheet" type="text/css" href="../media/static/css/standard.css">
+
+</head>
+
+<body id="world">
+
+    <div id="header">
+        <h1>DIDOK Stops compared to OSM</h1>
+            <a href="http://wiki.openstreetmap.org/wiki/EN:Switzerland/DIDOK">More information on DIDOK</a> |
+            <a href="http://wiki.openstreetmap.org/wiki/Switzerland/DIDOK/Maintenance_Howto">How to use this map</a> |
+            <a href="statistiken.html">Statistics</a>
+    </div>
+    <div id="subheader">
+        <a href="..">Zurück zur Karte</a>
+    </div>
+    <div id="subheader_right">
+            Map data by <a href="http://www.openstreetmap.org">OpenStreetMap</a> and Contributors
+            (<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-by-SA</a>), 
+            DIDOK-Haltestellendaten vom <a href="http://www.bav.admin.ch/dokumentation/publikationen/00475/01497/index.html">BAV</a>
+     </div>
+
+    <h1>Statistics about OSM and DIDOK</h1>
+
+    <div class=" dllist">
+{% for k,v in infos %}
+<div class='dlline'>
+  <span class='dlitem'>{{k}}:</span>
+  <span class='dldef'>{{v}}</span>
+</div>
+{% endfor %}
+</div>
+<p/>
+<div>
+	<a href="contributors.html">list of osm contributors with how many didok-stop they touched last</a>
+</div>
+    <div id="map_footer">
+    </div>
+</body>
+
+</html>
+

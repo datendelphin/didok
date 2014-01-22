@@ -1,0 +1,38 @@
+<html>
+<head><title>OSM Haltestelle</title></head>
+<body>
+<p>
+{% if object.osm_type == "n" %}
+<a href="http://www.openstreetmap.org/browse/node/{{object.id}}">node {{object.id}}</a>
+{% endif %}
+{% if object.osm_type == "w" %}
+<a href="http://www.openstreetmap.org/browse/way/{{object.id}}">way {{object.id}}</a>
+{% endif %}
+{% if object.osm_type == "r" %}
+<a href="http://www.openstreetmap.org/browse/relation/{{object.id}}">relation {{object.id}}</a>
+{% endif %}
+</p>
+
+<div class=" dllist">
+{% for k,v in object.tags.items %}
+<div class='dlline'>
+  <span class='dlitem'>{{k}}</span>
+  <span class='dldef'>{{v}}</span>
+</div>
+{% endfor %}
+</div>
+
+<p>
+<h2>Verbunden mit:</h2>
+<div class=" dllist">
+{% for id, name in object.connected_with %}
+<div class='dlline'>
+ {% comment %}  <form action="" onsubmit="return stopDisconnect('{{object.id}}','{{id}}',this);">{{name}} <input type="image" src="/media/static/js/theme/default/img/close.gif"></form></span> {% endcomment %}
+{{name}} ({{id}})
+</div>
+{% endfor %}
+</div>
+<p>
+
+</body>
+<html>

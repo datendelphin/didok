@@ -1,0 +1,47 @@
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>DIDOK Haltestellen-Import</title>
+
+	<link rel="stylesheet" type="text/css" href="../media/static/css/standard.css">
+
+</head>
+
+<body id="world">
+
+    <div id="header">
+        <h1>DIDOK Stops compared to OSM</h1>
+            <a href="http://wiki.openstreetmap.org/wiki/EN:Switzerland/DIDOK">More information on DIDOK</a> |
+            <a href="http://wiki.openstreetmap.org/wiki/Switzerland/DIDOK/Maintenance_Howto">How to use this map</a> |
+            <a href="statistiken.html">Statistics</a>
+    </div>
+    <div id="subheader">
+        <a href="..">Zurück zur Karte</a>
+    </div>
+    <div id="subheader_right">
+            Map data by <a href="http://www.openstreetmap.org">OpenStreetMap</a> and Contributors
+            (<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-by-SA</a>), 
+            DIDOK-Haltestellendaten vom <a href="http://www.bav.admin.ch/dokumentation/publikationen/00475/01497/index.html">BAV</a>
+     </div>
+
+    <h1>Users which have last touched an osm element with an uic_ref tag</h1>
+
+<table class="usertable">
+  <tr class='userline'>
+    <th class='usercount'>No. Stops</td>
+    <th class='username'>Username</td>
+  </tr>
+{% for line in table %}
+  <tr class='userline'>
+    <td class='usercount'>{{line.count}}</td>
+    <td class='username'>{{line.username}}</td>
+  </tr>
+{% endfor %}
+</table>
+
+    <div id="map_footer">
+    </div>
+</body>
+
+</html>
+

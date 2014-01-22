@@ -1,0 +1,15 @@
+var lines = [
+{% for obj in lines %}
+{ "type": "Feature", "geometry": {"type": "LineString", "coordinates": [[{{obj.geom1.x}}, {{obj.geom1.y}}], [{{obj.geom2.x}}, {{obj.geom2.y}}]]},"properties": {
+{% for k,v in obj.prop %}"{{k|escapejs}}":"{{v|escapejs}}"{% if not forloop.last %},{% endif %}{% endfor %}
+}}{% if not forloop.last %},{% endif %}
+{% endfor %}];
+
+var points = [
+{% for obj in objs %} 
+{ "type": "Feature", "geometry": {"type": "Point", "coordinates": [{{obj.geom.x}}, {{obj.geom.y}}]},"properties": {
+{% for k,v in obj.prop %}"{{k|escapejs}}":"{{v|escapejs}}"{% if not forloop.last %},{% endif %}{% endfor %}
+}}{% if not forloop.last %},{% endif %}
+{% endfor %}];
+
+var clustering = {{ clustering }};
