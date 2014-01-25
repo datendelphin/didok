@@ -176,6 +176,7 @@ def listonlydidok(request):
     objs = []
     
     qs = DIDOKStops.objects.filter(import_geom__bboverlaps=bbox)
+    qs = qs.exclude(verkehrsmittel__startswith="(")
     qs = qs.extra(where=["dstnr NOT IN (SELECT uic_ref FROM osm_stops)"])
     
     if (qs[:500]).count() > 499:
