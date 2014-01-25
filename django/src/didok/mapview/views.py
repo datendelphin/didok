@@ -5,7 +5,13 @@ import re
 
 def route_map_view(request):
 
-    stateF = open('state.txt', 'r')
+    try:
+        stateF = open('state.txt', 'r')
+    except:
+        return direct_to_template(request,
+                              template='basemap.html',
+                              extra_context={'dataTime':None})
+
     for line in stateF.readlines():
         lastline = line
 
@@ -15,5 +21,5 @@ def route_map_view(request):
     context = {'dataTime' : dateTime}
 
     return direct_to_template(request,
-                              template='basemap.html', 
+                              template='basemap.html',
                               extra_context=context)
