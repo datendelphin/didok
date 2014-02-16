@@ -43,7 +43,7 @@
 <div class=" dllist">
 {% for id, name in object.connected_with %}
 <div class='dlline'>
-{% comment %}  <form action="" onsubmit="return stopDisconnect('{{id}}', '{{object.dstnr}}',this);">{{name}} <input type="image" src="/media/static/js/theme/default/img/close.gif"></form></span>{% endcomment %}
+{% comment %}  <form action="" onsubmit="return stopDisconnect('{{id}}', '{{object.dstnr}}',this);">{{name}} <input type="image" src="{{ MEDIA_URL }}js/theme/default/img/close.gif"></form></span>{% endcomment %}
 <a href="http://www.openstreetmap.org/browse/node/{{id}}">{{name}} ({{id}})</a>
 </div>
 {% endfor %}

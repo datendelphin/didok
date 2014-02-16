@@ -3,21 +3,21 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <title>DIDOK public transport stop comparison</title>
 
-    <link rel="stylesheet" href="media/static/css/leaflet.css" />
-    <link rel="stylesheet" href="media/static/css/leaflet.label.css" />
+    <link rel="stylesheet" href="{{ MEDIA_URL }}css/leaflet.css" />
+    <link rel="stylesheet" href="{{ MEDIA_URL }}css/leaflet.label.css" />
 
-    <link rel="stylesheet" type="text/css" href="media/static/css/map.css">
+    <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/map.css">
 
-    <script src="media/static/js/leaflet-src.js"></script>
-    <script src="media/static/js/leaflet.label.js"></script>
+    <script src="{{ MEDIA_URL }}js/leaflet-src.js"></script>
+    <script src="{{ MEDIA_URL }}js/leaflet.label.js"></script>
 
-    <script src="media/static/js/jquery-1.10.2.min.js"></script>
+    <script src="{{ MEDIA_URL }}js/jquery-1.10.2.min.js"></script>
 
-    <script src="media/static/js/slider-min.js"></script>
+    <script src="{{ MEDIA_URL }}js/slider-min.js"></script>
     
-    <script src="media/static/js/wgs84_ch1903.js"></script>
+    <script src="{{ MEDIA_URL }}js/wgs84_ch1903.js"></script>
 
-    <script src="media/static/js/Map.js"></script>
+    <script src="{{ MEDIA_URL }}js/Map.js"></script>
 
 </head>
 
@@ -28,7 +28,7 @@
     <div id="map">This map needs Javascript.</div>
 
     <div id="slider"><div id="sliderbg">
-        <div id="sliderthumb"><img src="media/static/img/sliderknob.png" alt="transparency slider" /></div>
+        <div id="sliderthumb"><img src="{{ MEDIA_URL }}img/sliderknob.png" alt="transparency slider" /></div>
       </div></div>
 
     <div id="map_header">
@@ -65,30 +65,30 @@ More Information can be found in the <a href="http://wiki.openstreetmap.org/wiki
 <h2>Relation of OSM data to DIDOK</h2>
 <p>The color of the dots shows the relationship of DIDOK and OSM-stops:
 <table>
-<tr><td><img src="media/static/img/black_point.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/black_point.png"></td>
     <td>DIDOK-stop for which a matching OSM stop exists</td></tr>
-<tr><td><img src="media/static/img/red_point.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/red_point.png"></td>
     <td>DIDOK-stop without a counterpart in OSM</td></tr>
-<tr><td><img src="media/static/img/yellow_point.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/yellow_point.png"></td>
     <td>DIDOK-stop which was marked as inexistent (e.g. stops that do not exist anymore or stops that are not yet buildt)</td></tr>
-<tr><td><img src="media/static/img/blue_point.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/blue_point.png"></td>
     <td>OSM-stop without a corresponding DIDOK entry</td></tr>
-<tr><td><img src="media/static/img/green_point.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/green_point.png"></td>
     <td>OSM-stop with a corresponding DIDOK-stop. The line shows the correspondance</td></tr>
 </table>
 <p>If the overlay "survey state of nodes" is enabled, rings around the OSM stops show the survey status</p>
 <table>
-<tr><td><img src="media/static/img/survey_red.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/survey_red.png"></td>
     <td>Stops that were not resurveyed yet</td></tr>
-<tr><td><img src="media/static/img/survey_orange.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/survey_orange.png"></td>
     <td>Stops that existed before the import, but were not resurveyed since</td></tr>
-<tr><td><img src="media/static/img/survey_green.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/survey_green.png"></td>
     <td>Stops which were altered after since the import (and hopefully checked)</td></tr>
 </table>
 <h2>Overview</h2>
 <p>If too many stops are on the map, they will be replaced by a placeholder:</p>
 <table>
-<tr><td><img src="media/static/img/cluster.png"></td>
+<tr><td><img src="{{ MEDIA_URL }}img/cluster.png"></td>
     <td>There are stops in this area. Please zoom in to see them.</td></tr>
 </table>
 
