@@ -153,7 +153,9 @@ function initMap() {
 
     getData();
 
-    var osm = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map);
+    var osmorg = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18});
+    var osmch = L.tileLayer('http://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {maxZoom: 20}).addTo(map);
+    var transport = L.tileLayer('http://tile.thunderforest.com/transport/{z}/{x}/{y}.png', {maxZoom: 18});
 
     var overlays = {
         "connected stops" : connected,
@@ -164,7 +166,13 @@ function initMap() {
 	"survey state of nodes" : v1
     };
 
-    L.control.layers({"OpenStreetMap" : osm}, overlays).addTo(map);
+    var basemaps = {
+        "osm.ch" : osmch,
+        "openstreetmap.org" : osmorg,
+        "Transport by Andy Allan<br>(<a href=\"http://www.thunderforest.com\">thunderforest</a>)" : transport
+    };
+
+    L.control.layers(basemaps, overlays).addTo(map);
     
     clusterlayer.addTo(map);
 
@@ -173,7 +181,9 @@ function initMap() {
     slider.getRealValue = function() {return Math.round((this.getValue()-16)*100/(220-4-1))/100;};
     slider.setValue(220+16-2);
     slider.subscribe("change", function(offsetFromStart) {
-        osm.setOpacity(slider.getRealValue());
+        osmorg.setOpacity(slider.getRealValue());
+        osmch.setOpacity(slider.getRealValue());
+        transport.setOpacity(slider.getRealValue());
     });
 
 }
