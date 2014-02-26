@@ -3,6 +3,7 @@ body {
     margin: 0
 }
 .leaflet-top { top: 100; }
+.leaflet-bottom { bottom: 2em; }
 /************************    Header     ****************************/
 #map_header { 
     background-color: #81AA4B;
@@ -130,7 +131,7 @@ a:hover {
 
 .closedsidebar {
     right: 0;
-    bottom: 2.2em;
+    bottom: 2.5em;
     overflow: hidden;
 }
 

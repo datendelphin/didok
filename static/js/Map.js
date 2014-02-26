@@ -8,7 +8,7 @@ var lineStyle = {
         "opacity": 1
 };
 
-
+/* overlays */
 var connected = new L.LayerGroup();
 var onlydidok = new L.LayerGroup();
 var onlyosm = new L.LayerGroup();
@@ -16,6 +16,17 @@ var badname = new L.LayerGroup();
 var clusterlayer = new L.LayerGroup();
 var worst100 = new L.LayerGroup();
 var v1 = new L.LayerGroup();
+
+/* base layers */
+var osmch = L.tileLayer('http://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {maxZoom: 20,
+                attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
+		             "<a href=\"http://www.osm.ch\">osm.ch</a>"});
+var osmorg = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18,
+		attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
+		             "<a href=\"http://www.openstreetmap.org\">osm.org</a>"});
+var transport = L.tileLayer('http://tile.thunderforest.com/transport/{z}/{x}/{y}.png', {maxZoom: 18,
+        attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
+                     "Andy Allan (<a href=\"http://www.thunderforest.com\">thunderforest</a>)"});
 
 function pointMarker(feature, latlng)
 {
@@ -76,7 +87,7 @@ function highlightFeature(e) {
             e.target.bringToFront();
         }
     }
-};
+}
 
 function resetHighlight(e) {
     if (e.target.feature.properties.state != "O1" &&
@@ -85,7 +96,7 @@ function resetHighlight(e) {
     {
         e.target.setRadius(3);
     }
-};
+}
 
 function featurePopup(e) {
 
@@ -99,7 +110,7 @@ function featurePopup(e) {
     if (!L.Browser.ie && !L.Browser.opera) {
         e.target.bringToFront();
     }
-};
+}
 
 function onEachLine(feature, layer) {
     layer.on({
@@ -121,41 +132,32 @@ function onMouseMove(e) {
                                                             WGStoCHy(e.latlng.lng, e.latlng.lng).toFixed(0);
 }
 
+function permaLink() {
+    var ll = map.getCenter();
+    var layers = "";
+    if (map.hasLayer(connected)) {layers += 'c';}
+    if (map.hasLayer(onlydidok)) {layers += 'd';}
+    if (map.hasLayer(onlyosm))  {layers += 'o';}
+    if (map.hasLayer(badname)) {layers += 'b';}
+    if (map.hasLayer(worst100)) {layers += 'w';}
+    if (map.hasLayer(v1)) {layers += 's';}
+    if (layers == "cdo") {layers = "";}
+    else {layers = 's' + layers;}
+    if (map.hasLayer(osmorg)) {
+        layers = 'o' + layers.slice(1);}
+    if (map.hasLayer(transport)) {
+        layers = 't' + layers.slice(1);
+    }
+    if (layers.length > 0) {layers += ':';}
+    return "<a href=\"/#" + layers + map.getZoom() + ":" + ll.lat.toFixed(6) + ":" + ll.lng.toFixed(6) + "\">permalink</a>";
+}
+
 function initMap() {
 
     $('#map').text('');
 
-    map = L.map('map', {layers: [connected, onlydidok, onlyosm]});
-
-    map.attributionControl.setPrefix("");
-
     var init_ll = false;
     var init_zoom = false;
-
-    if (window.location.hash) {
-        var init_loc = window.location.hash.replace("#", "").split(":");
-	if (!isNaN(init_loc[0]))
-            init_zoom = init_loc[0];
-        if (init_loc[1] && init_loc[2] ) { // should use typeof ... !== undefined
-        init_ll = new L.LatLng( init_loc[1], init_loc[2] );
-        }
-    }
-    if (!init_ll)   { init_ll  = new L.LatLng( 47, 8 ); }
-    if (!init_zoom) { init_zoom = 8; }
-    map.setView(init_ll, init_zoom);
-    
-    var ll = map.getCenter();
-    document.getElementById('map_footer_permalink').innerHTML = "<a href=\"/#" + map.getZoom() + ":" + ll.lat.toFixed(6) + ":" + ll.lng.toFixed(6) + "\">permalink</a>";
-
-    map.on('moveend', onMapMove);
-    map.on('layeradd', onLayerAdd);
-    map.on('mousemove', onMouseMove);
-
-    getData();
-
-    var osmorg = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18});
-    var osmch = L.tileLayer('http://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {maxZoom: 20}).addTo(map);
-    var transport = L.tileLayer('http://tile.thunderforest.com/transport/{z}/{x}/{y}.png', {maxZoom: 18});
 
     var overlays = {
         "connected stops" : connected,
@@ -169,11 +171,66 @@ function initMap() {
     var basemaps = {
         "osm.ch" : osmch,
         "openstreetmap.org" : osmorg,
-        "Transport by Andy Allan<br>(<a href=\"http://www.thunderforest.com\">thunderforest</a>)" : transport
+        "Transport by Andy Allan" : transport
     };
 
+    var permaLinkBase = {
+        'c': osmch,
+        'o': osmorg,
+        't': transport
+    };
+
+    var permaLinkOverlays = {
+        "c" : connected,
+        "d" : onlydidok,
+        "o" : onlyosm,
+        "b" : badname,
+        "w" : worst100,
+	"s" : v1
+    };
+
+    var baseLayer = osmch;
+    var vectorLayers = [connected, onlydidok, onlyosm];
+
+    if (window.location.hash) {
+        var init_loc = window.location.hash.slice(1).split(':');
+        if (isNaN(init_loc[0])) {
+            if (init_loc[0][0] in permaLinkBase){
+                baseLayer = permaLinkBase[init_loc[0][0]];
+            }
+            init_loc[0] = init_loc[0].slice(1);
+            if (init_loc[0].length > 0){
+                vectorLayers = [];
+                for (var i = 0; i < init_loc[0].length; ++i){
+                    if (init_loc[0][i] in permaLinkOverlays){
+                        vectorLayers.push(permaLinkOverlays[init_loc[0][i]]);
+                    }
+                }
+            }
+            init_loc.splice(0,1);
+        }
+        if (!isNaN(init_loc[0]))
+            init_zoom = init_loc[0];
+        if (init_loc[1] && init_loc[2] ) {
+        init_ll = new L.LatLng( init_loc[1], init_loc[2] );
+        }
+    }
+    if (!init_ll)   { init_ll  = new L.LatLng( 47, 8 ); }
+    if (!init_zoom) { init_zoom = 8; }
+    map = L.map('map', {layers: vectorLayers});
     L.control.layers(basemaps, overlays).addTo(map);
+    baseLayer.addTo(map);
+    map.setView(init_ll, init_zoom);
+    map.attributionControl.setPrefix("");
     
+    document.getElementById('map_footer_permalink').innerHTML = permaLink();
+
+    map.on('moveend', onMapMove);
+    map.on('layeradd', onLayerAdd);
+    map.on('mousemove', onMouseMove);
+
+    getData();
+
     clusterlayer.addTo(map);
 
     /* Code und images borrowed from http://www.sutter.com/map */
@@ -278,7 +335,7 @@ function loadStops(data, layer){
     }
 
     if (map.hasLayer(badname)) {
-        badname.eachLayer(function f(c){c.bringToFront()});
+        badname.eachLayer(function f(c){c.bringToFront();});
     }
 }
 
@@ -318,8 +375,7 @@ function getBadName(){
 function onMapMove(e) {
     getData();
 
-    var ll = map.getCenter();
-    document.getElementById('map_footer_permalink').innerHTML = "<a href=\"/#" + map.getZoom() + ":" + ll.lat.toFixed(6) + ":" + ll.lng.toFixed(6) + "\">permalink</a>";
+    document.getElementById('map_footer_permalink').innerHTML = permaLink();
 }
 
 function onLayerAdd(e) {
@@ -329,6 +385,7 @@ function onLayerAdd(e) {
     if (e.layer == badname) {getData();}
     if (e.layer == worst100) {getData();}
     if (e.layer == v1) {getData();}
+    document.getElementById('map_footer_permalink').innerHTML = permaLink();
 }
 
 function didok_invalidate(id) {
