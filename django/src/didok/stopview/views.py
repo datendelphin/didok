@@ -1,6 +1,6 @@
 # vim: set fileencoding=utf-8
 from django.conf import settings
-from django.views.generic.simple import direct_to_template
+from django.shortcuts import render
 import django.contrib.gis.geos as geos
 from django.db import connection, transaction
 from django.contrib.gis.db.models import Extent
@@ -62,11 +62,11 @@ def listconnected(request):
                         ('state', ''),
                         ]})
     
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                 {'objs' : objs,
                                     'lines' : lines,
                                     'clustering' : clustering},
-                                mimetype='text/plain')
+                                content_type='text/plain')
 
 def clustering(request):
     objs = []
@@ -162,11 +162,11 @@ def clustering(request):
                         'prop' : props})
     
     
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                 {'objs' : objs,
                                  'lines' : [],
                                  'clustering' : 'false'},
-                                 mimetype='text/plain')
+                                 content_type='text/plain')
 
 
 def listonlydidok(request):
@@ -191,11 +191,11 @@ def listonlydidok(request):
                         ('name', pt.name.strip().replace('\\','')),
                         ('state', didok_state(pt,'VN')),
                         ]})
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                     {'objs' : objs,
                                         'lines' : [],
                                         'clustering' : clustering},
-                                    mimetype='text/plain')
+                                    content_type='text/plain')
 
 def listonlyosm(request):
     bbox=getBBox(request)
@@ -215,11 +215,11 @@ def listonlyosm(request):
                         ('name', pt.osm_name),
                         ('state', 'ON'),
                         ]})
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                     {'objs' : objs,
                                         'lines' : [],
                                         'clustering' : clustering},
-                                    mimetype='text/plain')
+                                    content_type='text/plain')
 
 def listbadname(request):
     #SELECT * FROM didok_stops, osm_stops WHERE uic_ref = dstnr AND tags->'uic_name' != name
@@ -259,11 +259,11 @@ def listbadname(request):
                             ('name', '%.2fm' % pt.dist),
                             ('state', ''),
                             ]})
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                     {'objs' : objs,
                                      'lines' : lines,
                                      'clustering' : clustering},
-                                    mimetype='text/plain')
+                                    content_type='text/plain')
 
 filter_unchecked_users = Q(user_id=368211) | Q(user_id=2680)
 
@@ -306,11 +306,11 @@ def listv1(request):
                         ('state', 'OC'),
                         ]})
         
-    return direct_to_template(request, "vector/points.json",
+    return render(request, "vector/points.json",
                                     {'objs' : objs,
                                         'lines' : [],
                                         'clustering' : clustering},
-                                    mimetype='text/plain')
+                                    content_type='text/plain')
 
 def stats(request):
     infos = []
@@ -333,7 +333,7 @@ def stats(request):
         OSMStops.objects.extra(where=["uic_ref BETWEEN 8500000 AND 8599999"]).count()
         - OSMStops.objects.extra(where=["uic_ref BETWEEN 8500000 AND 8599999"]).filter(filter_unchecked_users).count()))
 
-    return direct_to_template(request, "vector/statistics.html", 
+    return render(request, "vector/statistics.html", 
                                {'infos' : infos})
 
 def ranking(request):
@@ -345,31 +345,31 @@ def ranking(request):
     for line in qs:
         table.append({'username' : line.name, 'count' : line.num_stops})
 
-    return direct_to_template(request, "vector/contributors.html", 
+    return render(request, "vector/contributors.html", 
                                {'table' : table})
 
 def inexistentStop(request, in_id):
     dstnr = DIDOKStops.objects.get(pk=in_id).dstnr
     if DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent").count() > 0:
-        return direct_to_template(request, 'ok', {'text' : 'failed'})
+        return render(request, 'ok', {'text' : 'failed'})
     d = DIDOKAnnotation(dstnr=dstnr, text="inexistent")
     f = open('/var/log/didok.log', 'a')
     f.write('%d;inexistent;%s;%f\n' % (dstnr, request.META['REMOTE_ADDR'], time.time()))
     f.close()
     d.save()
-    return direct_to_template(request, 'ok', {'text' : 'OK'})
+    return render(request, 'ok', {'text' : 'OK'})
 
 def existentStop(request, in_id):
     dstnr = DIDOKStops.objects.get(pk=in_id).dstnr
     if DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent").count() < 1:
-        return direct_to_template(request, 'ok', {'text' : 'failed'})
+        return render(request, 'ok', {'text' : 'failed'})
     f = open('/var/log/didok.log', 'a')
     f.write('%d;existent;%s;%f\n' % (dstnr, request.META['REMOTE_ADDR'], time.time()))
     f.close()
     qs = DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent")
     for d in qs:
         d.delete()
-    return direct_to_template(request, 'ok', {'text' : 'OK'})
+    return render(request, 'ok', {'text' : 'OK'})
 
 
 def errorHttpResponse(msg):
@@ -380,5 +380,5 @@ def errorHttpResponse(msg):
 
 def infoDidok(request):
     infos.append(('dstnr', 1))
-    return direct_to_template(request, 'vector/didok_info.html',
+    return render(request, 'vector/didok_info.html',
                           {'object' : infos})

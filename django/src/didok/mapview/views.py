@@ -1,6 +1,6 @@
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse
-from django.views.generic.simple import direct_to_template
+from django.shortcuts import render
 import re
 
 def route_map_view(request):
@@ -8,9 +8,7 @@ def route_map_view(request):
     try:
         stateF = open('state.txt', 'r')
     except:
-        return direct_to_template(request,
-                              template='basemap.html',
-                              extra_context={'dataTime':None})
+        return render(request, 'basemap.html', {'dataTime':None})
 
     for line in stateF.readlines():
         lastline = line
@@ -20,6 +18,4 @@ def route_map_view(request):
 
     context = {'dataTime' : dateTime}
 
-    return direct_to_template(request,
-                              template='basemap.html',
-                              extra_context=context)
+    return render(request, 'basemap.html', context)
