@@ -110,8 +110,8 @@ def import_didok(db, options, csv_file):
         # only use rows which have a valid uic number and valid coordinates
         try:
             infos[dstnr_col] = int(infos[dstnr_col]) + 8500000
-            lat, lon = swisstowgs84.CHtoWGS((float(infos[xkoord_col])*1000,
-                                             float(infos[ykoord_col])*1000))
+            lat, lon = swisstowgs84.CHtoWGS((float(infos[ykoord_col])*1000,
+                                             float(infos[xkoord_col])*1000))
             for i in internal_int_columns:
                 if i in internal_to_column:
                     if infos[internal_to_column[i]] != "":
