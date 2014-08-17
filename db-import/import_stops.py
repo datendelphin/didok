@@ -130,6 +130,7 @@ def import_didok(db, options, csv_file):
                        ) + "'?',%s,ST_GeomFromText('POINT(%s %s)', 4326));"
         cur.execute(query, values + [version, lon, lat])
 
+    cur.execute("UPDATE %s SET import_geom = NULL WHERE xkoord = '000.000'", options.import_table)
     print "skipped %d lines in import of didok data" % (skipped_lines,)
     db.commit()
 
