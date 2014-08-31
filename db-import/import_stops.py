@@ -149,6 +149,21 @@ def import_osm(db, snapshot_db, options):
     print "import osm stops into %s" % (options.osm_table)
     cur = db.cursor()
     snapshot_cur = snapshot_db.cursor()
+    snapshot_cur.execute("""
+        CREATE OR REPLACE FUNCTION convert_to_integer(v_input text)
+            RETURNS INTEGER AS $$
+            DECLARE v_int_value INTEGER DEFAULT NULL;
+            BEGIN
+                BEGIN
+                    v_int_value := v_input::INTEGER;
+                EXCEPTION WHEN OTHERS THEN
+                    RETURN NULL;
+                END;
+                RETURN v_int_value;
+            END;
+        $$ LANGUAGE plpgsql;
+    """)
+
     if table_exists(db, options.osm_table):
         cur.execute("DELETE FROM %s" % options.osm_table)
     else:
@@ -172,14 +187,14 @@ def import_osm(db, snapshot_db, options):
             id,
             tags -> 'name' AS name,
             'n' as type,
-            (tags -> 'uic_ref')::INT AS uic_ref,
+            convert_to_integer(tags -> 'uic_ref') AS uic_ref,
             tags,
             user_id,
             version,
             geom
         FROM nodes
         WHERE tags ? 'uic_ref'
-        AND   tags -> 'uic_ref' ~  E'^\\\\d+$'""")
+        AND   convert_to_integer(tags -> 'uic_ref') IS NOT NULL""")
 
     cur.executemany("""
         INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
@@ -191,14 +206,14 @@ def import_osm(db, snapshot_db, options):
             w.id,
             w.tags -> 'name' AS name,
             'w' as type,
-            (w.tags -> 'uic_ref')::INT AS uic_ref,
+            convert_to_integer(w.tags -> 'uic_ref') AS uic_ref,
             w.tags,
             w.user_id,
             w.version,
             ST_CENTROID(ST_MAKELINE(n.geom))
         FROM ways w, nodes n
         WHERE w.tags ? 'uic_ref'
-        AND   w.tags -> 'uic_ref' ~  E'^\\\\d+$'
+        AND   convert_to_integer(w.tags -> 'uic_ref') IS NOT NULL
         AND n.id = ANY (w.nodes)
         GROUP BY w.id""")
 
@@ -212,7 +227,7 @@ def import_osm(db, snapshot_db, options):
             r.id,
             r.tags -> 'name' AS name,
             'r' as type,
-            (r.tags -> 'uic_ref')::INT AS uic_ref,
+            convert_to_integer(r.tags -> 'uic_ref') AS uic_ref,
             r.tags,
             r.user_id,
             r.version,
@@ -225,7 +240,7 @@ def import_osm(db, snapshot_db, options):
                 END))
         FROM relations r JOIN relation_members m ON r.id = m.relation_id
         WHERE r.tags ? 'uic_ref'
-          AND r.tags -> 'uic_ref' ~  E'^\\\\d+$'
+        AND   convert_to_integer(r.tags -> 'uic_ref') IS NOT NULL
         GROUP BY r.id""")
 
     cur.executemany("""
