@@ -81,9 +81,9 @@ a:hover {
 #map {
     position: absolute;
     left: 0;
-    top: 0;
+    top: 86px;
+    bottom: 20px;
     width: 100%;
-    height: 100%
 }
 
 /* adapt the controls */
