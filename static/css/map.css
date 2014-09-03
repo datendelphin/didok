@@ -2,8 +2,6 @@ body {
     overflow: hidden;
     margin: 0
 }
-.leaflet-top { top: 100; }
-.leaflet-bottom { bottom: 2em; }
 /************************    Header     ****************************/
 #map_header { 
     background-color: #81AA4B;

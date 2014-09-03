@@ -217,7 +217,7 @@ function initMap() {
     }
     if (!init_ll)   { init_ll  = new L.LatLng( 47, 8 ); }
     if (!init_zoom) { init_zoom = 8; }
-    map = L.map('map', {layers: vectorLayers});
+    map = L.map('map', {layers: vectorLayers, editInOSMControlOptions: {}});
     L.control.layers(basemaps, overlays).addTo(map);
     baseLayer.addTo(map);
     map.setView(init_ll, init_zoom);
