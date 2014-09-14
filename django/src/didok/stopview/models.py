@@ -43,6 +43,7 @@ class OSMStops(models.Model):
     """Table that holds the OSM PT nodes.
     """
     id = BigIntegerField(primary_key=True)
+    parent = BigIntegerField()
     osm_name = models.TextField()
     osm_type = models.TextField()
     tags = HStoreField()
@@ -54,11 +55,14 @@ class OSMStops(models.Model):
     objects = models.GeoManager()
 
     def connected_with(self):
-        cursor = connection.cursor()
+        if self.uic_ref is None:
+            return []
+        else:
+            cursor = connection.cursor()
 
-        cursor.execute("SELECT dstnr, name FROM didok_stops WHERE dstnr = %s" % (self.uic_ref))
+            cursor.execute("SELECT dstnr, name FROM didok_stops WHERE dstnr = %s" % (self.uic_ref))
 
-        return [c for c in cursor]
+            return [c for c in cursor]
 
     class Meta:
         db_table = u'osm_stops'

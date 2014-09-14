@@ -20,6 +20,12 @@
   <span class='dldef'>{{v}}</span>
 </div>
 {% endfor %}
+{% if object.parent %}
+<div class='dlline'>
+  <span class='dlitem'>parent relation</span>
+  <span class='dldef'><a href="http://www.openstreetmap.org/browse/relation/{{object.parent}}">relation {{object.parent}}</a></span>
+</div>
+{% endif %}
 </div>
 
 <p>

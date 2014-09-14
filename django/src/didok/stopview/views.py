@@ -203,7 +203,7 @@ def listonlyosm(request):
     objs = []
     
     qs = OSMStops.objects.filter(osm_geom__bboverlaps=bbox)
-    qs = qs.extra(where=["uic_ref NOT IN (SELECT dstnr FROM didok_stops)"])
+    qs = qs.extra(where=["(uic_ref NOT IN (SELECT dstnr FROM didok_stops) OR uic_ref IS NULL)"])
     
     if (qs[:500]).count() > 499:
         clustering='true'

@@ -14,6 +14,14 @@ from optparse import OptionParser
 
 import swisstowgs84
 
+#tags to import for osm
+osm_tags_import = [('railway','station'),
+                   ('railway','halt'),
+                   ('railway','tram_stop'),
+                   ('highway','bus_stop'),
+                   ('aerialway','station'),
+                   ('amenity','ferry_terminal')]
+
 #didok column settings
 internal_text_columns = ["name", "gonr", "xkoord", "ykoord", "goabk",
                          "gemeinde_nr", "gemeinde", "kanton", "bp",
@@ -62,6 +70,9 @@ def import_didok(db, options, csv_file):
                 % (options.import_table))
 
         cur.execute("CREATE INDEX didok_stops_index ON %s USING gist (import_geom)"
+                % (options.import_table))
+
+        cur.execute("CREATE INDEX idx_didok_stops_dstnr ON %s (dstnr)"
                 % (options.import_table))
 
     #cur.execute("GRANT SELECT ON TABLE %s TO \"www-data\"" % (options.import_table))
@@ -170,6 +181,7 @@ def import_osm(db, snapshot_db, options):
         cur.execute("""
             CREATE TABLE %s (
                 id        BIGINT,
+                parent    BIGINT,
                 osm_name  TEXT,
                 osm_type  TEXT,
                 uic_ref   INT,
@@ -179,54 +191,60 @@ def import_osm(db, snapshot_db, options):
             )""" % (options.osm_table))
 
         cur.execute("SELECT AddGeometryColumn('%s', 'osm_geom', 4326, 'POINT', 2)"
-             % (options.osm_table))
+                % (options.osm_table))
+
+        cur.execute("CREATE INDEX idx_osm_stops_uic_ref ON %s (uic_ref)"
+                % (options.osm_table))
+
+        cur.execute("CREATE INDEX osm_stops_index ON %s USING gist (osm_geom)"
+                % (options.osm_table))
+
+    table_placeholder = 'pointORwayORrelation';
+    tags_conditionals = ["\"%s\".tags -> '%s' = '%s'" % (table_placeholder,k,v) for k,v in osm_tags_import]
+    where = '("' + table_placeholder + "\".tags ? 'uic_ref' "
+    where += "AND convert_to_integer(\"" + table_placeholder + "\".tags -> 'uic_ref') IS NOT NULL) OR\n            "
+    where += " OR\n            ".join(tags_conditionals)
 
     #nodes
     snapshot_cur.execute("""
         SELECT
             id,
             tags -> 'name' AS name,
-            'n' as type,
             convert_to_integer(tags -> 'uic_ref') AS uic_ref,
             tags,
             user_id,
             version,
             geom
-        FROM nodes
-        WHERE tags ? 'uic_ref'
-        AND   convert_to_integer(tags -> 'uic_ref') IS NOT NULL""")
+        FROM nodes n
+        WHERE """ + where.replace(table_placeholder,'n'))
 
     cur.executemany("""
         INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+        VALUES (%%s, %%s, 'n', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
 
     #ways
     snapshot_cur.execute("""
         SELECT
             w.id,
             w.tags -> 'name' AS name,
-            'w' as type,
             convert_to_integer(w.tags -> 'uic_ref') AS uic_ref,
             w.tags,
             w.user_id,
             w.version,
             ST_CENTROID(ST_MAKELINE(n.geom))
-        FROM ways w, nodes n
-        WHERE w.tags ? 'uic_ref'
-        AND   convert_to_integer(w.tags -> 'uic_ref') IS NOT NULL
-        AND n.id = ANY (w.nodes)
+        FROM ways w JOIN nodes n ON n.id = ANY (w.nodes)
+        WHERE """ + where.replace(table_placeholder,'w') + """
         GROUP BY w.id""")
 
     cur.executemany("""
         INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+        VALUES (%%s, %%s, 'w', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
 
     #relations
     snapshot_cur.execute("""
         SELECT
             r.id,
             r.tags -> 'name' AS name,
-            'r' as type,
             convert_to_integer(r.tags -> 'uic_ref') AS uic_ref,
             r.tags,
             r.user_id,
@@ -239,13 +257,37 @@ def import_osm(db, snapshot_db, options):
                         (SELECT ST_COLLECT(n.geom) FROM nodes n, ways w WHERE n.id = ANY (w.nodes) AND w.id = m.member_id)
                 END))
         FROM relations r JOIN relation_members m ON r.id = m.relation_id
-        WHERE r.tags ? 'uic_ref'
-        AND   convert_to_integer(r.tags -> 'uic_ref') IS NOT NULL
+        WHERE """ + where.replace(table_placeholder,'r') + """
         GROUP BY r.id""")
 
     cur.executemany("""
         INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, %%s, %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+        VALUES (%%s, %%s, 'r', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+
+    db.commit()
+
+    # apply uic_ref from relations to elements
+    # first collect set of all used nodes and ways
+    cur.execute("SELECT DISTINCT id FROM osm_stops WHERE osm_type = 'n'")
+    n_ids = set((x[0] for x in cur.fetchall()))
+    cur.execute("SELECT DISTINCT id FROM osm_stops WHERE osm_type = 'w'")
+    w_ids = set((x[0] for x in cur.fetchall()))
+
+    # iterate over all relations
+    snapshot_cur.execute("PREPARE members AS SELECT member_type, member_id FROM relation_members WHERE relation_id = $1")
+    cur.execute("PREPARE insert_uic_n AS UPDATE osm_stops SET (uic_ref, parent) = ($1, $2) WHERE uic_ref IS NULL AND osm_type = 'n' AND id = $3")
+    cur.execute("PREPARE insert_uic_w AS UPDATE osm_stops SET (uic_ref, parent) = ($1, $2) WHERE uic_ref IS NULL AND osm_type = 'w' AND id = $3")
+    cur.execute("SELECT DISTINCT id, uic_ref FROM osm_stops WHERE osm_type = 'r'")
+    for relation in cur.fetchall():
+        r_id = relation[0]
+        uic_ref = relation[1]
+        # iterate over all relation members
+        snapshot_cur.execute("EXECUTE members (%s)",(r_id,))
+        for record in snapshot_cur.fetchall():
+            if record[0] == "N" and record[1] in n_ids:
+                cur.execute("EXECUTE insert_uic_n (%s, %s, %s)", (uic_ref, r_id, record[1]))
+            if record[0] == "W" and record[1] in w_ids:
+                cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, record[1]))
 
     db.commit()
 
