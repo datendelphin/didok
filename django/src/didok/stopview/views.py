@@ -177,7 +177,7 @@ def listonlydidok(request):
     
     qs = DIDOKStops.objects.filter(import_geom__bboverlaps=bbox)
     qs = qs.exclude(verkehrsmittel__startswith="(")
-    qs = qs.extra(where=["dstnr NOT IN (SELECT uic_ref FROM osm_stops)"])
+    qs = qs.extra(where=["dstnr NOT IN (SELECT uic_ref FROM osm_stops WHERE uic_ref IS NOT NULL)"])
     
     if (qs[:500]).count() > 499:
         clustering='true'
