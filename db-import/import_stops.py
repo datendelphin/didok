@@ -15,12 +15,24 @@ from optparse import OptionParser
 import swisstowgs84
 
 #tags to import for osm
-osm_tags_import = [('railway','station'),
-                   ('railway','halt'),
-                   ('railway','tram_stop'),
-                   ('highway','bus_stop'),
-                   ('aerialway','station'),
-                   ('amenity','ferry_terminal')]
+osm_tags_import = [('railway','station',1),
+                   ('railway','halt',1),
+                   ('railway','tram_stop',2),
+                   ('highway','bus_stop',3),
+                   ('amenity','bus_station',3),
+                   ('aerialway','station',4),
+                   ('amenity','ferry_terminal',5),
+                   ('railway','funicular',7)]
+
+osm_transport_keys = [('train',1),
+                      ('light_rail',1),
+                      ('tram',2),
+                      ('bus', 3),
+                      ('trolleybus', 3),
+                      ('aerialway',4),
+                      ('ferry',5),
+                      ('subway',6),
+                      ('funicular',7)]
 
 #didok column settings
 internal_text_columns = ["name", "gonr", "xkoord", "ykoord", "goabk",
@@ -154,6 +166,8 @@ def import_didok(db, options, csv_file):
         )""" % (options.annotation_table))
         db.commit()
 
+    cur.execute('ANALYZE')
+    db.commit()
 
 
 def import_osm(db, snapshot_db, options):
@@ -187,7 +201,8 @@ def import_osm(db, snapshot_db, options):
                 uic_ref   INT,
                 tags      hstore,
                 user_id   INT,
-                version   INT
+                version   INT,
+                modeoftransport INT
             )""" % (options.osm_table))
 
         cur.execute("SELECT AddGeometryColumn('%s', 'osm_geom', 4326, 'POINT', 2)"
@@ -200,7 +215,7 @@ def import_osm(db, snapshot_db, options):
                 % (options.osm_table))
 
     table_placeholder = 'pointORwayORrelation';
-    tags_conditionals = ["\"%s\".tags -> '%s' = '%s'" % (table_placeholder,k,v) for k,v in osm_tags_import]
+    tags_conditionals = ["\"%s\".tags -> '%s' = '%s'" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
     where = '("' + table_placeholder + "\".tags ? 'uic_ref' "
     where += "AND convert_to_integer(\"" + table_placeholder + "\".tags -> 'uic_ref') IS NOT NULL) OR\n            "
     where += " OR\n            ".join(tags_conditionals)
@@ -289,8 +304,17 @@ def import_osm(db, snapshot_db, options):
             if record[0] == "W" and record[1] in w_ids:
                 cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, record[1]))
 
+    # add mode of transportation to OSM
+    for k,v,m in osm_tags_import:
+        cur.execute("""UPDATE %s SET modeoftransport = %%s WHERE tags -> %%s = %%s""" %
+                (options.osm_table), (m, k, v))
+    for k,m in osm_transport_keys:
+        cur.execute("""UPDATE %s SET modeoftransport = %%s WHERE tags -> %%s = 'yes'""" %
+                (options.osm_table), (m, k))
+
     db.commit()
 
+    # copy user table
     if table_exists(db, options.username_table):
         cur.execute("DELETE FROM %s" % options.username_table)
     else:
@@ -305,6 +329,8 @@ def import_osm(db, snapshot_db, options):
     cur.executemany("""INSERT INTO %s VALUES (%%s, %%s)""" % (options.username_table),
             snapshot_cur.fetchall())
 
+    db.commit()
+    cur.execute('ANALYZE')
     db.commit()
 
 def matches(db, options):
@@ -345,6 +371,8 @@ def matches(db, options):
 
     #cur.execute("GRANT SELECT ON TABLE %s TO \"www-data\"" % (fulltable))
 
+    db.commit()
+    cur.execute('ANALYZE')
     db.commit()
             
 if __name__ == "__main__":
