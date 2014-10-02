@@ -18,21 +18,21 @@ import swisstowgs84
 osm_tags_import = [('railway','station',1),
                    ('railway','halt',1),
                    ('railway','tram_stop',2),
-                   ('highway','bus_stop',3),
-                   ('amenity','bus_station',3),
-                   ('aerialway','station',4),
-                   ('amenity','ferry_terminal',5),
-                   ('railway','funicular',7)]
+                   ('highway','bus_stop',4),
+                   ('amenity','bus_station',4),
+                   ('aerialway','station',8),
+                   ('amenity','ferry_terminal',16),
+                   ('railway','funicular',64)]
 
 osm_transport_keys = [('train',1),
                       ('light_rail',1),
                       ('tram',2),
-                      ('bus', 3),
-                      ('trolleybus', 3),
-                      ('aerialway',4),
-                      ('ferry',5),
-                      ('subway',6),
-                      ('funicular',7)]
+                      ('bus', 4),
+                      ('trolleybus', 4),
+                      ('aerialway',8),
+                      ('ferry',16),
+                      ('subway',32),
+                      ('funicular',64)]
 
 #didok column settings
 internal_text_columns = ["name", "gonr", "xkoord", "ykoord", "goabk",
@@ -305,11 +305,14 @@ def import_osm(db, snapshot_db, options):
                 cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, record[1]))
 
     # add mode of transportation to OSM
+    cur.execute("""UPDATE %s SET modeoftransport = 0""" % (options.osm_table))
     for k,v,m in osm_tags_import:
-        cur.execute("""UPDATE %s SET modeoftransport = %%s WHERE tags -> %%s = %%s""" %
+        cur.execute("""UPDATE %s SET modeoftransport = %%s | modeoftransport
+                WHERE tags -> %%s = %%s""" %
                 (options.osm_table), (m, k, v))
     for k,m in osm_transport_keys:
-        cur.execute("""UPDATE %s SET modeoftransport = %%s WHERE tags -> %%s = 'yes'""" %
+        cur.execute("""UPDATE %s SET modeoftransport = %%s | modeoftransport
+                WHERE tags -> %%s = 'yes'""" %
                 (options.osm_table), (m, k))
 
     db.commit()

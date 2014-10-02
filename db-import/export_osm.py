@@ -12,6 +12,17 @@ import csv
 import psycopg2
 from optparse import OptionParser
 
+number_to_transport={1 :'Zug',
+                     2 :'Tram',
+                     4 :'Bus',
+                     8 :'Luftseilbahn',
+                     16:'Schiff',
+                     32:'Metro',
+                     64:'Funicular'}
+
+def mode_of_transport(number):
+    return ' '.join([number_to_transport[bit] for bit in number_to_transport if bit & number])
+
 
 def column_transform(row):
     coords = tuple(row[4].strip("POINT(").strip(")").split())
@@ -23,17 +34,17 @@ def column_transform(row):
     if row[2] == "r":
         link += "relation/"
     link += str(row[3])
-    return row[0:2] + coords + row[5:] + (link,)
+    return row[0:2] + coords + row[5:6] + (mode_of_transport(row[6]), link)
 
 def export_osm(db, options, csv_file):
     print "export osm stops from %s" % (options.osm_table)
     cur = db.cursor()
-    columns = ["uic_ref", "osm_name", "osm_type", "o.id", "ST_AsText(osm_geom)", "dist"]
+    columns = ["uic_ref", "osm_name", "osm_type", "o.id", "ST_AsText(osm_geom)", "dist", "modeoftransport"]
     cur.execute("""SELECT %s FROM %s o LEFT OUTER JOIN %s m ON o.id = m.osm_id JOIN %s u ON o.user_id = u.id""" %
             (", ".join(columns), options.osm_table, options.match_table, options.username_table))
 
     osm_csv = csv.writer(open(csv_file, "w"))
-    osm_csv.writerow(["#uic","OSM Name", "longitude", "latitude", "distance to DIDOK coords [m]", "link to OSM object"])
+    osm_csv.writerow(["#uic","OSM Name", "longitude", "latitude", "distance to DIDOK coords [m]", "mode of transport", "link to OSM object"])
     output = map(column_transform, cur.fetchall())
     osm_csv.writerows(output)
 
