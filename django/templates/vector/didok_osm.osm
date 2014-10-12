@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="didok.osm.ch"
+     copyright="Schweizer Bundesamt für Verkeht (BAV) 2014">
+  <node id="-1" visible="true" lat="{{object.import_geom.y}}" lon="{{object.import_geom.x}}">
+    <tag k="name" v="{{object.name}}" />
+    <tag k="uic_name" v="{{object.name}}" />
+    <tag k="uic_ref" v="{{object.dstnr}}" />
+    <tag k="ele" v="{{object.hoehe}}" />
+    <tag k="operator" v="{{object.goabk}}" />{% if object.verkehrsmittel = "Bus" %}
+    <tag k="highway" v="bus_stop" />
+{% endif %}{% if object.verkehrsmittel = "Zug" %}
+    <tag k="railway" v="station" />
+{% endif %}{% if object.verkehrsmittel = "Schiff" %}
+    <tag k="amenity" v="ferry_termianl" />
+    <tag k="cargo" v="passangers" />
+{% endif %}{% if object.verkehrsmittel = "Luftseilbahn" %}
+    <tag k="aerialway" v="station" />
+{% endif %}{% if object.verkehrsmittel = "Tram" %}
+    <tag k="railway" v="tram_stop" />
+{% endif %}    <tag k="source" v="Bundesamt für Verkehr (BAV), DIDOK 2015" />
+  </node>
+</osm>

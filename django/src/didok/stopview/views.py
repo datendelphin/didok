@@ -323,7 +323,7 @@ def stats(request):
                (SELECT DISTINCT osm_id FROM match)"""]).count()))  
     infos.append(('DIDOK-stops', DIDOKStops.objects.count()))
     infos.append(('DIDOK-stops with at least one counterpart in OSM',
-            DIDOKStops.objects.extra(where=["""dstnr IN
+            DIDOKStops.objects.extra(where=["""id IN
                (SELECT DISTINCT didok_id FROM match)"""]).count()))
     infos.append(('user=DidokImportCH, version=1',
         OSMStops.objects.extra(where=["uic_ref BETWEEN 8500000 AND 8599999"]).filter(filter_unchecked_users, version=1).count()))

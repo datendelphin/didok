@@ -55,6 +55,7 @@
 {% else %}
 <button type="button" onclick="didok_revalidate({{object.id}})">Mark Stop as valid</button>
 {% endif %}
+<a target="_blank" href="http://127.0.0.1:8111/import?url={{ request.build_absolute_uri }}.osm">import into josm</a>
 </div>
 {% endif %}
 <p>

@@ -75,6 +75,7 @@ MIDDLEWARE_CLASSES = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.media',
+    'django.core.context_processors.request'
 )
 
 ROOT_URLCONF = 'didok.urls'
