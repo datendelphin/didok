@@ -41,8 +41,8 @@ def export_osm(db, options, csv_file):
     print "export abandoned stops from %s" % (options.osm_table)
     cur = db.cursor()
     columns = ["uic_ref", "osm_name", "osm_type", "o.id", "ST_AsText(osm_geom)", "modeoftransport"]
-    cur.execute("""SELECT %s FROM %s o LEFT OUTER JOIN %s m ON o.id = m.osm_id JOIN %s u ON o.user_id = u.id WHERE m.didok_id IS NULL AND o.uic_ref IS NOT NULL AND u.name = 'DidokImportCH'""" %
-            (", ".join(columns), options.osm_table, options.match_table, options.username_table))
+    cur.execute("""SELECT %s FROM %s o LEFT OUTER JOIN %s d ON o.uic_ref = d.dstnr JOIN %s u ON o.user_id = u.id WHERE d.dstnr IS NULL AND o.uic_ref IS NOT NULL AND u.name = 'DidokImportCH'""" %
+            (", ".join(columns), options.osm_table, options.didok_table, options.username_table))
 
     osm_csv = csv.writer(open(csv_file, "w"))
     osm_csv.writerow(["#Name", "longitude", "latitude", "uic", "mode of transport", "link to OSM object"])
@@ -60,12 +60,12 @@ if __name__ == "__main__":
                        help='database user')
     parser.add_option('--dbpassword', dest='password', default='',
                        help='password for database')
-    parser.add_option('--match_table', dest='match_table', default='match',
-                       help='table to store match data into')
+    parser.add_option('--didok_table', dest='didok_table', default='didok_stops',
+                       help='table to read didok data from')
     parser.add_option('--osm_table', dest='osm_table', default='osm_stops',
-                       help='table to store match data into')
+                       help='table to read osm data from')
     parser.add_option('--user_table', dest='username_table', default='osm_usernames',
-                       help='table to store osm user names in')
+                       help='table to read osm user names from')
 
     (options, args) = parser.parse_args()
 
