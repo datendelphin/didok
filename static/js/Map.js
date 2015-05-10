@@ -18,15 +18,15 @@ var worst100 = new L.LayerGroup();
 var v1 = new L.LayerGroup();
 
 /* base layers */
-var osmch = L.tileLayer('http://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {maxZoom: 20,
+var osmch = L.tileLayer('//tile.osm.ch/switzerland/{z}/{x}/{y}.png', {maxZoom: 20,
                 attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
 		             "<a href=\"http://www.osm.ch\">osm.ch</a>"});
-var osmorg = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18,
+var osmorg = L.tileLayer('//tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18,
 		attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
 		             "<a href=\"http://www.openstreetmap.org\">osm.org</a>"});
-var transport = L.tileLayer('http://tile.thunderforest.com/transport/{z}/{x}/{y}.png', {maxZoom: 18,
-        attribution: "Tiles <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
-                     "Andy Allan (<a href=\"http://www.thunderforest.com\">thunderforest</a>)"});
+var transport = L.tileLayer('//tile.thunderforest.com/transport/{z}/{x}/{y}.png', {maxZoom: 18,
+        attribution: "Tiles <a href=\"//creativecommons.org/licenses/by-sa/2.0/\">CC-by-SA</a> " +
+                     "Andy Allan (<a href=\"//www.thunderforest.com\">thunderforest</a>)"});
 
 function pointMarker(feature, latlng)
 {
