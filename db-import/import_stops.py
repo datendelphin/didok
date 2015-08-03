@@ -8,8 +8,12 @@ import os
 import re
 import sys
 import csv
+import httplib
+import urllib
+import xml.etree.ElementTree as ET
 
 import psycopg2
+import psycopg2.extras
 from optparse import OptionParser
 
 import swisstowgs84
@@ -170,11 +174,11 @@ def import_didok(db, options, csv_file):
     db.commit()
 
 
-def import_osm(db, snapshot_db, options):
+def import_osm(db, options):
     print "import osm stops into %s" % (options.osm_table)
+    psycopg2.extras.register_hstore(db)
     cur = db.cursor()
-    snapshot_cur = snapshot_db.cursor()
-    snapshot_cur.execute("""
+    cur.execute("""
         CREATE OR REPLACE FUNCTION convert_to_integer(v_input text)
             RETURNS INTEGER AS $$
             DECLARE v_int_value INTEGER DEFAULT NULL;
@@ -215,94 +219,180 @@ def import_osm(db, snapshot_db, options):
                 % (options.osm_table))
 
     table_placeholder = 'pointORwayORrelation';
-    tags_conditionals = ["\"%s\".tags -> '%s' = '%s'" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
-    where = '("' + table_placeholder + "\".tags ? 'uic_ref' "
-    where += "AND convert_to_integer(\"" + table_placeholder + "\".tags -> 'uic_ref') IS NOT NULL) OR\n            "
-    where += " OR\n            ".join(tags_conditionals)
+    tags_conditionals = ["%s[%s=%s];" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
+    # for debug, only small area
+    tags_conditionals = ["%s[%s=%s](47.0993,8.3423,47.24684,8.5837);" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
+    overpass_filter =  '(\n' + table_placeholder + "[\"uic_ref\"~\"[0-9]+\"];\n"
+    # for debug, only small area
+    overpass_filter =  '(\n' + table_placeholder + "[\"uic_ref\"~\"[0-9]+\"](47.0993,8.3423,47.24684,8.5837);\n"
+    overpass_filter += "\n".join(tags_conditionals)
+    overpass_filter += ");\n"
+    overpass_query = overpass_filter + "out meta;"
+    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+
+    user_names = dict()
+    def extract_users(root, user_names):
+        for child in root:
+            if child.tag in ("node", "way", "relation"):
+                user_names[child.attrib["uid"]] = child.attrib["user"]
 
     #nodes
-    snapshot_cur.execute("""
-        SELECT
-            id,
-            tags -> 'name' AS name,
-            convert_to_integer(tags -> 'uic_ref') AS uic_ref,
-            tags,
-            user_id,
-            version,
-            geom
-        FROM nodes n
-        WHERE """ + where.replace(table_placeholder,'n'))
+    #print overpass_query.replace(table_placeholder,'node');
+
+    print "Query nodes from overpass"
+
+    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn.request("GET", overpass_query.replace(table_placeholder,'node'))
+    overpass_res = overpass_conn.getresponse()
+    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing node xml"
+
+    node_root = ET.fromstring(overpass_res.read())
+
+    def insert_nodes(node_root):
+        for child in node_root:
+            if child.tag == "node":
+                tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child}
+                geom = "SRID=4326;POINT(%s %s)" % (child.attrib["lat"], child.attrib["lon"])
+                yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
 
     cur.executemany("""
-        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, 'n', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+        INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
+        VALUES (%%s, 'n', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_nodes(node_root))
 
-    #ways
-    snapshot_cur.execute("""
-        SELECT
-            w.id,
-            w.tags -> 'name' AS name,
-            convert_to_integer(w.tags -> 'uic_ref') AS uic_ref,
-            w.tags,
-            w.user_id,
-            w.version,
-            ST_CENTROID(ST_MAKELINE(n.geom))
-        FROM ways w JOIN nodes n ON n.id = ANY (w.nodes)
-        WHERE """ + where.replace(table_placeholder,'w') + """
-        GROUP BY w.id""")
+    print "successfully inserted nodes into database"
 
-    cur.executemany("""
-        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, 'w', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
-
-    #relations
-    snapshot_cur.execute("""
-        SELECT
-            r.id,
-            r.tags -> 'name' AS name,
-            convert_to_integer(r.tags -> 'uic_ref') AS uic_ref,
-            r.tags,
-            r.user_id,
-            r.version,
-            ST_CENTROID(ST_COLLECT(
-                CASE
-                    WHEN m.member_type = 'N' THEN
-                        (SELECT ST_COLLECT(n.geom) FROM nodes n WHERE m.member_id = n.id)
-                    WHEN m.member_type = 'W' THEN
-                        (SELECT ST_COLLECT(n.geom) FROM nodes n, ways w WHERE n.id = ANY (w.nodes) AND w.id = m.member_id)
-                END))
-        FROM relations r JOIN relation_members m ON r.id = m.relation_id
-        WHERE """ + where.replace(table_placeholder,'r') + """
-        GROUP BY r.id""")
-
-    cur.executemany("""
-        INSERT INTO %s (id, osm_name, osm_type, uic_ref, tags, user_id, version, osm_geom)
-        VALUES (%%s, %%s, 'r', %%s, %%s, %%s, %%s, %%s)""" % (options.osm_table), snapshot_cur.fetchall())
+    extract_users(node_root, user_names)
 
     db.commit()
+    overpass_conn.close()
+    
+    #ways
+
+    print "Query ways from overpass"
+
+    overpass_query = "(" + overpass_filter + ">;\n);\nout meta;"
+    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+
+    #print overpass_query.replace(table_placeholder,'way');
+
+    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn.request("GET", overpass_query.replace(table_placeholder,'way'))
+    overpass_res = overpass_conn.getresponse()
+    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing way xml"
+
+    way_root = ET.fromstring(overpass_res.read())
+
+    way_nodes = dict()
+
+    for child in way_root:
+        if child.tag == "node":
+            way_nodes[child.attrib["id"]] = child
+
+    def insert_ways(way_root):
+        for child in way_root:
+            if child.tag == "way":
+                nodes = [tag.attrib["ref"] for tag in child if tag.tag == "nd"]
+                tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child if tag.tag == "tag"}
+                lat = lon = 0
+                for node in nodes:
+                    lat += float(way_nodes[node].attrib["lat"])
+                    lon += float(way_nodes[node].attrib["lon"])
+                lat /= len(nodes)
+                lon /= len(nodes)
+                geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
+                yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
+
+    cur.executemany("""
+        INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
+        VALUES (%%s, 'w', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_ways(way_root))
+
+    print "successfully inserted ways into database"
+
+    extract_users(way_root, user_names)
+
+    db.commit()
+    overpass_conn.close()
+
+    #relations
+
+    print "Query relations from overpass"
+
+    overpass_query = "(" + overpass_filter + ">;\n);\nout meta;"
+    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+
+    #print overpass_query.replace(table_placeholder,'relation');
+
+    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn.request("GET", overpass_query.replace(table_placeholder,'relation'))
+    overpass_res = overpass_conn.getresponse()
+    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing relation xml"
+
+    relation_root = ET.fromstring(overpass_res.read())
+
+    relation_nodes = dict()
+    relation_ways = dict()
+
+    for child in relation_root:
+        if child.tag == "node":
+            relation_nodes[child.attrib["id"]] = child
+        if child.tag == "way":
+            relation_ways[child.attrib["id"]] = child
+
+    def insert_relations(relation_root):
+        for child in relation_root:
+            if child.tag == "relation":
+                ways = [tag.attrib["ref"] for tag in child if tag.tag == "member" and tag.attrib["type"] == "way"]
+                nodes = []
+                for way in ways:
+                    nodes += [tag.attrib["ref"] for tag in relation_ways[way] if tag.tag == "nd"]
+                nodes += [tag.attrib["ref"] for tag in child if tag.tag == "member" and tag.attrib["type"] == "node"]
+                tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child if tag.tag == "tag"}
+                lat = lon = 0
+                for node in nodes:
+                    lat += float(relation_nodes[node].attrib["lat"])
+                    lon += float(relation_nodes[node].attrib["lon"])
+                lat /= len(nodes)
+                lon /= len(nodes)
+                geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
+                yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
+
+    cur.executemany("""
+        INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
+        VALUES (%%s, 'w', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_relations(relation_root))
+
+
+    print "successfully inserted relations into database"
+
+    extract_users(relation_root, user_names)
+
+    db.commit()
+    overpass_conn.close()
+
+    # fill uic_ref and name column
+    cur.execute("UPDATE osm_stops SET (uic_ref, osm_name) = (convert_to_integer(tags -> 'uic_ref'), tags -> 'name')")
+
 
     # apply uic_ref from relations to elements
-    # first collect set of all used nodes and ways
-    cur.execute("SELECT DISTINCT id FROM osm_stops WHERE osm_type = 'n'")
-    n_ids = set((x[0] for x in cur.fetchall()))
-    cur.execute("SELECT DISTINCT id FROM osm_stops WHERE osm_type = 'w'")
-    w_ids = set((x[0] for x in cur.fetchall()))
-
-    # iterate over all relations
-    snapshot_cur.execute("PREPARE members AS SELECT member_type, member_id FROM relation_members WHERE relation_id = $1")
+    # first collect set of all used nodes and ways    
+    w_ids = set((way.attrib["id"] for way in way_root if way.tag == "way"))
+    n_ids = set((node.attrib["id"] for node in node_root if node.tag == "node"))
     cur.execute("PREPARE insert_uic_n AS UPDATE osm_stops SET (uic_ref, parent) = ($1, $2) WHERE uic_ref IS NULL AND osm_type = 'n' AND id = $3")
     cur.execute("PREPARE insert_uic_w AS UPDATE osm_stops SET (uic_ref, parent) = ($1, $2) WHERE uic_ref IS NULL AND osm_type = 'w' AND id = $3")
-    cur.execute("SELECT DISTINCT id, uic_ref FROM osm_stops WHERE osm_type = 'r'")
-    for relation in cur.fetchall():
-        r_id = relation[0]
-        uic_ref = relation[1]
-        # iterate over all relation members
-        snapshot_cur.execute("EXECUTE members (%s)",(r_id,))
-        for record in snapshot_cur.fetchall():
-            if record[0] == "N" and record[1] in n_ids:
-                cur.execute("EXECUTE insert_uic_n (%s, %s, %s)", (uic_ref, r_id, record[1]))
-            if record[0] == "W" and record[1] in w_ids:
-                cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, record[1]))
+    # iterate over all relations
+    for relation in relation_root:
+        if relation.tag == "relation":
+            r_id = relation.attrib["id"]
+            uic_ref = None
+            for tag in relation:
+                if tag.tag == "tag" and tag.attrib["k"] == "uic_ref":
+                    uic_ref = tag.attrib["v"]
+            if uic_ref:
+                # iterate over all relation members
+                for item in relation:
+                    if item.tag == "way" and item.attrib["ref"] in w_ids:
+                        cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
+                    if item.tag == "node" and item.attrib["ref"] in n_ids:
+                        cur.execute("EXECUTE insert_uic_n (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
 
     # add mode of transportation to OSM
     cur.execute("""UPDATE %s SET modeoftransport = 0""" % (options.osm_table))
@@ -327,10 +417,8 @@ def import_osm(db, snapshot_db, options):
                 name      TEXT
             )""" % (options.username_table))
 
-    snapshot_cur.execute("""SELECT * FROM users""")
-
     cur.executemany("""INSERT INTO %s VALUES (%%s, %%s)""" % (options.username_table),
-            snapshot_cur.fetchall())
+            user_names.items())
 
     db.commit()
     cur.execute('ANALYZE')
@@ -396,8 +484,6 @@ if __name__ == "__main__":
                        help='table to store match data into')
     parser.add_option('--didok_annotation_table', dest='annotation_table', default='didok_annotation',
                        help='table to store didok annotations')
-    parser.add_option('--snapshotdbname', dest='snapshot_db', default='switzerland',
-                       help='db with osm snapshot schema')
     parser.add_option('--user_table', dest='username_table', default='osm_usernames',
                        help='table to store osm user names in')
     parser.add_option('--update', action='store_true', dest='update', default=False,
@@ -410,11 +496,9 @@ if __name__ == "__main__":
     else:
         db = psycopg2.connect('dbname=%s user=%s password=%s' % 
                 (options.database, options.username, options.password))
-        snapshot_db = psycopg2.connect('dbname=%s user=%s password=%s' % 
-                (options.snapshot_db, options.username, options.password))
         if not options.update:
             import_didok(db, options, args[0])
-        import_osm(db, snapshot_db, options)
+        import_osm(db, options)
         matches(db, options)
 
 
