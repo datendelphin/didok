@@ -221,10 +221,10 @@ def import_osm(db, options):
     table_placeholder = 'pointORwayORrelation';
     tags_conditionals = ["%s[%s=%s];" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
     # for debug, only small area
-    tags_conditionals = ["%s[%s=%s](47.0993,8.3423,47.24684,8.5837);" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
+    # tags_conditionals = ["%s[%s=%s](47.0993,8.3423,47.24684,8.5837);" % (table_placeholder,k,v) for k,v,m in osm_tags_import]
     overpass_filter =  '(\n' + table_placeholder + "[\"uic_ref\"~\"[0-9]+\"];\n"
     # for debug, only small area
-    overpass_filter =  '(\n' + table_placeholder + "[\"uic_ref\"~\"[0-9]+\"](47.0993,8.3423,47.24684,8.5837);\n"
+    # overpass_filter =  '(\n' + table_placeholder + "[\"uic_ref\"~\"[0-9]+\"](47.0993,8.3423,47.24684,8.5837);\n"
     overpass_filter += "\n".join(tags_conditionals)
     overpass_filter += ");\n"
     overpass_query = overpass_filter + "out meta;"
