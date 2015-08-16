@@ -295,8 +295,9 @@ def import_osm(db, options):
                 tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child if tag.tag == "tag"}
                 lat = lon = 0
                 for node in nodes:
-                    lat += float(way_nodes[node].attrib["lat"])
-                    lon += float(way_nodes[node].attrib["lon"])
+                    if node in way_nodes:
+                        lat += float(way_nodes[node].attrib["lat"])
+                        lon += float(way_nodes[node].attrib["lon"])
                 lat /= len(nodes)
                 lon /= len(nodes)
                 geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
@@ -344,13 +345,15 @@ def import_osm(db, options):
                 ways = [tag.attrib["ref"] for tag in child if tag.tag == "member" and tag.attrib["type"] == "way"]
                 nodes = []
                 for way in ways:
-                    nodes += [tag.attrib["ref"] for tag in relation_ways[way] if tag.tag == "nd"]
+                    if way in relation_ways:
+                        nodes += [tag.attrib["ref"] for tag in relation_ways[way] if tag.tag == "nd"]
                 nodes += [tag.attrib["ref"] for tag in child if tag.tag == "member" and tag.attrib["type"] == "node"]
                 tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child if tag.tag == "tag"}
                 lat = lon = 0
                 for node in nodes:
-                    lat += float(relation_nodes[node].attrib["lat"])
-                    lon += float(relation_nodes[node].attrib["lon"])
+                    if node in relation_nodes:
+                        lat += float(relation_nodes[node].attrib["lat"])
+                        lon += float(relation_nodes[node].attrib["lon"])
                 lat /= len(nodes)
                 lon /= len(nodes)
                 geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
