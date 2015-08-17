@@ -252,7 +252,7 @@ def import_osm(db, options):
         for child in node_root:
             if child.tag == "node":
                 tags = {tag.attrib["k"]: tag.attrib["v"] for tag in child}
-                geom = "SRID=4326;POINT(%s %s)" % (child.attrib["lat"], child.attrib["lon"])
+                geom = "SRID=4326;POINT(%s %s)" % (child.attrib["lon"], child.attrib["lat"])
                 yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
 
     cur.executemany("""
@@ -300,7 +300,7 @@ def import_osm(db, options):
                         lon += float(way_nodes[node].attrib["lon"])
                 lat /= len(nodes)
                 lon /= len(nodes)
-                geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
+                geom = "SRID=4326;POINT(%s %s)" % (lon, lat)
                 yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
 
     cur.executemany("""
@@ -356,7 +356,7 @@ def import_osm(db, options):
                         lon += float(relation_nodes[node].attrib["lon"])
                 lat /= len(nodes)
                 lon /= len(nodes)
-                geom = "SRID=4326;POINT(%s %s)" % (lat, lon)
+                geom = "SRID=4326;POINT(%s %s)" % (lon, lat)
                 yield [int(child.attrib["id"]), tags, int(child.attrib["uid"]), int(child.attrib["version"]), geom]
 
     cur.executemany("""
