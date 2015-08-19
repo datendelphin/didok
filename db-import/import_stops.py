@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import csv
+import itertools
 import httplib
 import urllib
 import xml.etree.ElementTree as ET
@@ -425,6 +426,24 @@ def import_osm(db, options):
 
     db.commit()
     cur.execute('ANALYZE')
+
+    # update time of last import
+    update_time_table = options.osm_table + "_update_time"
+    if table_exists(db, update_time_table):
+        cur.execute("DELETE FROM %s" % update_time_table)
+    else:
+        cur.execute("CREATE TABLE %s (time TIMESTAMP)" % (update_time_table))
+
+    lasttime = "0000-00-00T00:00:00Z"
+    for item in itertools.chain(node_root, way_root, relation_root):
+        timestamp = item.attrib.get("timestamp", None)
+        if timestamp:
+            if lasttime < timestamp:
+                lasttime = timestamp
+
+    cur.execute("INSERT INTO %s VALUES (%%s)" % (update_time_table), (lasttime,)) 
+
+
     db.commit()
 
 def matches(db, options):

@@ -1,20 +1,17 @@
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import render
-import re
+from models import *
 
 def route_map_view(request):
 
+    timestamp = OSMLastUpdate.objects.all()[0]
     try:
-        stateF = open('state.txt', 'r')
+        timestamp = OSMLastUpdate.objects.all()[0].time
     except:
         return render(request, 'basemap.html', {'dataTime':None})
 
-    for line in stateF.readlines():
-        lastline = line
-
-    dateRe = re.compile('timestamp=(\d{4})-(\d{2})-(\d{2})T(\d{2})\\\\?:(\d{2})\\\\?:\d{2}Z')
-    dateTime = re.sub(dateRe, '\\3.\\2.\\1 \\4:\\5', lastline)
+    dateTime = timestamp.strftime('%d.%m.%Y %H:%M')
 
     context = {'dataTime' : dateTime}
 
