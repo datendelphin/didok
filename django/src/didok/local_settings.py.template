@@ -1,0 +1,40 @@
+# -*- coding:utf-8 -*-
+
+"""
+Example settings
+
+Use this file as a base for your local settings and copy
+it to django/src/didok/local_settings.py.
+
+"""
+
+from didok.settings import *
+
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis', 
+        'NAME': 'didok',                 # Or path to database file if using sqlite3.
+        'USER': 'osm',                   # Not used with sqlite3.
+        'PASSWORD': '',                  # Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    }
+}
+
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a
+# trailing slash.
+# Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
+# MEDIA_URL = '//static.osm.ch/didok/'
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = ''
+
+# Set up from which URLs this site is used. A leading dot acts as
+# a wildcard to allow any subdomains. Example: '.osm.ch'
+ALLOWED_HOSTS = [
+    '.osm.ch',
+]
+
