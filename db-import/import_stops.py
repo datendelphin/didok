@@ -46,7 +46,9 @@ internal_text_columns = ["name", "gonr", "xkoord", "ykoord", "goabk",
 internal_int_columns = ["dstnr", "hoehe"]
 header_to_internal = {"DSt-Nr":"dstnr",
                       "Dst-Nr":"dstnr",
+                      "Dst-Nr.":"dstnr",
                       "Name":"name",
+                      "Dst-Bezeichnung-offiziell":"name",
                       "GO-Nr":"gonr",
                       "GO-Abk":"goabk",
                       "Gde-Nr":"gemeinde_nr",
@@ -54,9 +56,13 @@ header_to_internal = {"DSt-Nr":"dstnr",
                       "Kt.":"kanton",
                       "BP":"bp",
                       "VP":"vp",
+                      "VPP":"vp",
                       "Höhe":"hoehe",
                       "X-Koord.":"xkoord",
                       "Y-Koord.":"ykoord",
+                      "KOORDZ":"hoehe",
+                      "KOORDX":"xkoord",
+                      "KOORDY":"ykoord",
                       "Verkehrsmittel":"verkehrsmittel",
                       }
 
@@ -104,8 +110,8 @@ def import_didok(db, options, csv_file):
     # create translation of columns to internal fields
     internal_to_column = {}
     for i,header in enumerate(headers):
-        if header in header_to_internal:
-            internal_to_column[header_to_internal[header]] = i
+        if header.strip() in header_to_internal:
+            internal_to_column[header_to_internal[header.strip()]] = i
 
     print "detected fields"
     for i in internal_to_column:
