@@ -18,7 +18,8 @@ urlpatterns = patterns('didok.stopview.views',
     (r'^statistiken.html', 'stats'),
     (r'^contributors.html', 'ranking'),
     (r'^edit/inexistentStop/(?P<in_id>\d+)$', 'inexistentStop'),
-    (r'^edit/existentStop/(?P<in_id>\d+)$', 'existentStop')
+    (r'^edit/existentStop/(?P<in_id>\d+)$', 'existentStop'),
+    (r'^info/d(?P<in_id>\d+).osm$', 'infoDidok')
 )
 
 urlpatterns += patterns('',
@@ -28,7 +29,4 @@ urlpatterns += patterns('',
     (r'^info/o(?P<pk>\d+)$', DetailView.as_view(
            queryset = OSMStops.objects.all(),
            template_name = 'vector/osm_info.html')),
-    (r'^info/d(?P<pk>\d+).osm$', DetailView.as_view(
-           queryset = DIDOKStops.objects.all(),
-           template_name = 'vector/didok_osm.osm')),
 )

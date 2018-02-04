@@ -8,6 +8,7 @@ from django.db.models import Count,Q
 from django.http import HttpResponse
 
 import time
+import re
 from models import *
 
 def getBBox(request):
@@ -378,7 +379,9 @@ def errorHttpResponse(msg):
 
 
 
-def infoDidok(request):
-    infos.append(('dstnr', 1))
-    return render(request, 'vector/didok_info.html',
-                          {'object' : infos})
+def infoDidok(request, in_id):
+    dstop = DIDOKStops.objects.get(pk=in_id)
+    opshort = re.search('^[^-]+', dstop.goabk).group(0)
+
+    return render(request, 'vector/didok_osm.osm',
+            {'object' : dstop, 'opshort': opshort})
