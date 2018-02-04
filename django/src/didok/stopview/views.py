@@ -353,7 +353,7 @@ def inexistentStop(request, in_id):
     if DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent").count() > 0:
         return render(request, 'ok', {'text' : 'failed'})
     d = DIDOKAnnotation(dstnr=dstnr, text="inexistent")
-    f = open('/var/log/didok.log', 'a')
+    f = open('/var/log/didok/inexistent_stops.log', 'a')
     f.write('%d;inexistent;%s;%f\n' % (dstnr, request.META['REMOTE_ADDR'], time.time()))
     f.close()
     d.save()
@@ -363,7 +363,7 @@ def existentStop(request, in_id):
     dstnr = DIDOKStops.objects.get(pk=in_id).dstnr
     if DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent").count() < 1:
         return render(request, 'ok', {'text' : 'failed'})
-    f = open('/var/log/didok.log', 'a')
+    f = open('/var/log/didok/inexistent_stops.log', 'a')
     f.write('%d;existent;%s;%f\n' % (dstnr, request.META['REMOTE_ADDR'], time.time()))
     f.close()
     qs = DIDOKAnnotation.objects.filter(dstnr=dstnr, text="inexistent")
