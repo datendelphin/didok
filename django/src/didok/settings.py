@@ -37,12 +37,6 @@ MEDIA_ROOT = PROJECTDIR + '../static/'
 # Examples: "http://foo.com/static/admin/", "/static/admin/".
 ADMIN_MEDIA_PREFIX = '/static/admin/'
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
-
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -51,22 +45,28 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.media',
-    'django.core.context_processors.request'
-)
-
 ROOT_URLCONF = 'didok.urls'
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    PROJECTDIR + "templates",
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'DIRS': [
+            PROJECTDIR + "templates",
+        ],
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.media',
+                'django.template.context_processors.request'
+            ],
+        },
+    },
+]
 
 INSTALLED_APPS = (
      'didok.mapview',
-     'didok.stopview'
+     'didok.stopview',
+     'django.contrib.contenttypes',
+     'django.contrib.auth',
 )
 

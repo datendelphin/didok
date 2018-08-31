@@ -1,5 +1,6 @@
 from django.contrib.gis.db import models
-from customfields import HStoreField, BigIntegerField
+from django.contrib.postgres.fields import HStoreField
+from django.db.models import BigIntegerField
 from django.db import connection
 
 class DIDOKStops(models.Model):

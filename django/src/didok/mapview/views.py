@@ -1,7 +1,7 @@
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import render
-from models import *
+from .models import *
 
 def route_map_view(request):
 

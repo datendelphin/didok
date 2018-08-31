@@ -1,6 +1,7 @@
 from django.conf.urls import *
 #from stopview.models import *
 from didok.stopview.models import *
+from didok.stopview import views
 
 from django.views.generic.detail import DetailView
 
@@ -8,25 +9,22 @@ from django.views.generic.detail import DetailView
 # from django.contrib import admin
 # admin.autodiscover()
 
-urlpatterns = patterns('didok.stopview.views',
-    (r'^list$', 'listconnected' ),
-    (r'^onlydidok$', 'listonlydidok'),
-    (r'^onlyosm$', 'listonlyosm'),
-    (r'^badname$', 'listbadname'),
-    (r'^clustering', 'clustering'),
-    (r'^v1', 'listv1'),
-    (r'^statistiken.html', 'stats'),
-    (r'^contributors.html', 'ranking'),
-    (r'^edit/inexistentStop/(?P<in_id>\d+)$', 'inexistentStop'),
-    (r'^edit/existentStop/(?P<in_id>\d+)$', 'existentStop'),
-    (r'^info/d(?P<in_id>\d+).osm$', 'infoDidok')
-)
-
-urlpatterns += patterns('',
-    (r'^info/d(?P<pk>\d+)$', DetailView.as_view(
+urlpatterns = [
+    url(r'^list$', views.listconnected ),
+    url(r'^onlydidok$', views.listonlydidok),
+    url(r'^onlyosm$', views.listonlyosm),
+    url(r'^badname$', views.listbadname),
+    url(r'^clustering', views.clustering),
+    url(r'^v1', views.listv1),
+    url(r'^statistiken.html', views.stats),
+    url(r'^contributors.html', views.ranking),
+    url(r'^edit/inexistentStop/(?P<in_id>\d+)$', views.inexistentStop),
+    url(r'^edit/existentStop/(?P<in_id>\d+)$', views.existentStop),
+    url(r'^info/d(?P<in_id>\d+).osm$', views.infoDidok),
+    url(r'^info/d(?P<pk>\d+)$', DetailView.as_view(
            queryset = DIDOKStops.objects.all(),
            template_name = 'vector/didok_info.html')),
-    (r'^info/o(?P<pk>\d+)$', DetailView.as_view(
+    url(r'^info/o(?P<pk>\d+)$', DetailView.as_view(
            queryset = OSMStops.objects.all(),
            template_name = 'vector/osm_info.html')),
-)
+]

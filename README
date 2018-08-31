@@ -1,10 +1,17 @@
 Web interface for comparing DIDOK and OSM data
 
+Requirements:
+
+python3
+django 1.8 or later
+psycopg2
+
 Installation:
 
-import osm data with osmosis into a snapshot database
-get didok stop list from http://www.bav.admin.ch/dokumentation/publikationen/00475/01497/index.html
-convert the xlsx file into csv using oocalc for example
+create a local config file django/src/didok/local_settings.py
+you can use the template local_settings.py.template
+
+get didok stop list from https://opentransportdata.swiss/en/dataset/didok
 import the csv file with db-import/import_stops.py
 
 run the web server with either wsgi (wsgi file in django/apache/django.wsgi)

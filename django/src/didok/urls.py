@@ -1,17 +1,18 @@
 from django.conf.urls import *
 from django.conf import settings
 
-urlpatterns = patterns('didok.mapview.views',
-    (r'^$', 'route_map_view', {}, 'simplemap'),
-)
+from didok.mapview import views
 
-urlpatterns += patterns('',
-    (r'^didokstops/', include('didok.stopview.urls')),
-)
+import django.views.static
+
+urlpatterns = [
+        url(r'^$', views.route_map_view),
+        url(r'^didokstops/', include('didok.stopview.urls')),
+]
 
 # for development
 if settings.DEBUG:
-    urlpatterns += patterns('',
-        (r'^media/static/(?P<path>.*)$', 'django.views.static.serve',
+    urlpatterns += [
+        url(r'^media/static/(?P<path>.*)$', django.views.static.serve,
         {'document_root': settings.MEDIA_ROOT})
-)
+]

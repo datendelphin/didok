@@ -9,7 +9,7 @@ from django.http import HttpResponse
 
 import time
 import re
-from models import *
+from .models import *
 
 def getBBox(request):
     errormsg = "No valid bbox specified."
