@@ -34,11 +34,15 @@
       </div></div>
 
     <div id="map_header">
-        <h1>DIDOK Stops compared to OSM</h1>
+        <h1>DIDOK Stops compared to OSM stops</h1>
+            <form id="search" action="didokstops/search">
             <a href="http://wiki.openstreetmap.org/wiki/EN:Switzerland/DIDOK">More information on DIDOK</a> |
             <a href="http://wiki.openstreetmap.org/wiki/Switzerland/DIDOK/Maintenance_Howto">How to use this map</a> |
             <a href="didokstops/statistiken.html">Statistics</a>
-    </div>
+                <input id="searchfield" name="search" placeholder="search stops" title="search for station names, osm IDs or uic numbers" type="search">
+                <input id="searchbutton" value="Search" type="submit">
+            </form>
+        </div>
     <div id="map_subheader">
         last update: {{ dataTime }} UTC
     </div>

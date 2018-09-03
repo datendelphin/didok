@@ -27,4 +27,5 @@ urlpatterns = [
     url(r'^info/o(?P<pk>\d+)$', DetailView.as_view(
            queryset = OSMStops.objects.all(),
            template_name = 'vector/osm_info.html')),
+    url(r'^search', views.search),
 ]

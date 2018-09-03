@@ -385,3 +385,54 @@ def infoDidok(request, in_id):
 
     return render(request, 'vector/didok_osm.osm',
             {'object' : dstop, 'opshort': opshort})
+
+def search(request):
+    osm_results=[]
+    didok_results=[]
+    search_string = request.GET.get('search', '').strip()
+    reosmnode=r'^(n|node)\s*(\d+)$'
+    reosmway=r'^(w|way)\s*(\d+)$'
+    reosmrel=r'^(r|rel|relation)\s*(\d+)$'
+    renumeric=r'^\d+$'
+
+    def osmres(qs):
+        for s in qs[:100]:
+            osm_results.append({
+                "name": s.osm_name,
+                "id": s.osm_type + str(s.id),
+                "location": s.osm_geom,
+                })
+    def didokres(qs):
+        for s in qs[:100]:
+            didok_results.append({
+                "name": s.name,
+                "id": str(s.dstnr),
+                "location": s.import_geom,
+                })
+
+
+    rr = re.search(renumeric, search_string)
+    if rr:
+        osmres(OSMStops.objects.filter(id=int(rr.group(0))))
+        osmres(OSMStops.objects.filter(tags__uic_ref=rr.group(0)))
+        didokres(DIDOKStops.objects.filter(dstnr=int(rr.group(0))))
+    rr = re.search(reosmnode, search_string)
+    if rr:
+        osmres(OSMStops.objects.filter(osm_type='n', id=int(rr.group(2))))
+    rr = re.search(reosmway, search_string)
+    if rr:
+        osmres(OSMStops.objects.filter(osm_type='w', id=int(rr.group(2))))
+    rr = re.search(reosmrel, search_string)
+    if rr:
+        osmres(OSMStops.objects.filter(osm_type='r', id=int(rr.group(2))))
+
+    qs = DIDOKStops.objects.filter(name__contains=search_string)
+    didokres(qs.extra(select={'relevance': 'char_length(name)'}, order_by=['relevance']))
+
+    qs = OSMStops.objects.filter(osm_name__contains=search_string)
+    osmres(qs.extra(select={'relevance': 'char_length(osm_name)'}, order_by=['relevance']))
+
+    return render(request, 'searchresults.html', {
+        'osm': osm_results,
+        'didok': didok_results,
+        })
