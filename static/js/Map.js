@@ -7,6 +7,7 @@ var lineStyle = {
         "weight": 2,
         "opacity": 1
 };
+var selectedItem = null;
 
 /* overlays */
 var connected = new L.LayerGroup();
@@ -99,7 +100,8 @@ function resetHighlight(e) {
 }
 
 function featurePopup(e) {
-
+    if (e.target.feature.properties.uic) { selectedItem=e.target.feature.properties.uic; }
+    else { selectedItem=e.target.feature.properties.id; }
     info = $.get("didokstops/info/" + e.target.feature.properties.id,
                     function (data){
                         e.target.bindPopup(data);
@@ -124,6 +126,24 @@ function onEachPoint(feature, layer) {
         mouseout: resetHighlight,
         click: featurePopup
     });
+    if (selectedItem) {
+        if (feature.properties.uic && feature.properties.uic == selectedItem) {
+            info = $.get("didokstops/info/" + feature.properties.id,
+                            function (data){
+                                layer.bindPopup(data);
+                                layer.openPopup();
+                            }
+                        );
+        }
+        if (feature.properties.id && feature.properties.id.substr(1) == selectedItem.substr(1)) {
+            info = $.get("didokstops/info/" + feature.properties.id,
+                            function (data){
+                                layer.bindPopup(data);
+                                layer.openPopup();
+                            }
+                        );
+        }
+    }
 }
 
 function onMouseMove(e) {
@@ -135,6 +155,7 @@ function onMouseMove(e) {
 function permaLink() {
     var ll = map.getCenter();
     var layers = "";
+    var selected = "";
     if (map.hasLayer(connected)) {layers += 'c';}
     if (map.hasLayer(onlydidok)) {layers += 'd';}
     if (map.hasLayer(onlyosm))  {layers += 'o';}
@@ -149,7 +170,11 @@ function permaLink() {
         layers = 't' + layers.slice(1);
     }
     if (layers.length > 0) {layers += ':';}
-    return "<a href=\"/#" + layers + map.getZoom() + ":" + ll.lat.toFixed(6) + ":" + ll.lng.toFixed(6) + "\">permalink</a>";
+    if (selectedItem) {
+        if ("nrwo".indexOf(selectedItem[0]) >= 0) { selected="?osm=" + selectedItem; }
+        else { selected="?uic=" + selectedItem; }
+    }
+    return "<a href=\"/" + selected + "#" + layers + map.getZoom() + ":" + ll.lat.toFixed(6) + ":" + ll.lng.toFixed(6) + "\">permalink</a>";
 }
 
 function initMap() {
@@ -191,6 +216,18 @@ function initMap() {
 
     var baseLayer = osmch;
     var vectorLayers = [connected, onlydidok, onlyosm];
+
+    if (location.search) {
+        var items = location.search.substr(1).split("&");
+        for (var i = 0; i < items.length; ++i) {
+            if (items[i].substr(0,4) === "osm=") {
+                selectedItem = items[i].substr(4);
+            }
+            if (items[i].substr(0,4) === "uic=") {
+                selectedItem = items[i].substr(4);
+            }
+        }
+    }
 
     if (window.location.hash) {
         var init_loc = window.location.hash.slice(1).split(':');

@@ -52,6 +52,7 @@ def listconnected(request):
         objs.append({'geom' : pt.didok.import_geom,
                         'prop' : [
                         ('id' , 'd' + str(pt.didok_id)),
+                        ('uic' , str(pt.didok.dstnr)),
                         ('name', pt.didok.name.strip().replace('\\','')),
                         ('state', didok_state(pt.didok, 'VY')),
                         ]})
@@ -189,6 +190,7 @@ def listonlydidok(request):
             objs.append({'geom' : pt.import_geom,
                         'prop' : [
                         ('id' , 'd' + str(pt.id)),
+                        ('uic' , str(pt.dstnr)),
                         ('name', pt.name.strip().replace('\\','')),
                         ('state', didok_state(pt,'VN')),
                         ]})
@@ -244,6 +246,7 @@ def listbadname(request):
             objs.append({'geom' : pt.didok.import_geom,
                             'prop' : [
                             ('id' , 'd' + str(pt.didok_id)),
+                            ('uic' , str(pt.didok.dstnr)),
                             ('name', note),
                             ('state', didok_state(pt.didok,'VY')),
                             ]})
