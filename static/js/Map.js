@@ -99,6 +99,10 @@ function resetHighlight(e) {
     }
 }
 
+function onPopupClose(e) {
+    selectedItem=null;
+}
+
 function featurePopup(e) {
     if (e.target.feature.properties.uic) { selectedItem=e.target.feature.properties.uic; }
     else { selectedItem=e.target.feature.properties.id; }
@@ -106,6 +110,7 @@ function featurePopup(e) {
                     function (data){
                         e.target.bindPopup(data);
                         e.target.openPopup();
+                        e.target.on("popupclose", onPopupClose);
                     }
                 );
 
@@ -132,6 +137,7 @@ function onEachPoint(feature, layer) {
                             function (data){
                                 layer.bindPopup(data);
                                 layer.openPopup();
+                                layer.on("popupclose", onPopupClose);
                             }
                         );
         }
@@ -140,6 +146,7 @@ function onEachPoint(feature, layer) {
                             function (data){
                                 layer.bindPopup(data);
                                 layer.openPopup();
+                                layer.on("popupclose", onPopupClose);
                             }
                         );
         }
@@ -346,7 +353,9 @@ function getClusters() {
 function loadStops(data, layer){
     eval(data);
     
+    var backupSelected = selectedItem;
     layer.clearLayers();
+    selectedItem = backupSelected;
     
     if ((layer == connected ||
         (layer == onlydidok && !map.hasLayer(connected)) ||
