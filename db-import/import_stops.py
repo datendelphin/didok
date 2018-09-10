@@ -47,6 +47,7 @@ internal_int_columns = ["dstnr", "hoehe"]
 header_to_internal = {"DSt-Nr":"dstnr",
                       "Dst-Nr":"dstnr",
                       "Dst-Nr.":"dstnr",
+                      "\xef\xbb\xbfDst-Nr.":"dstnr",
                       "Name":"name",
                       "Dst-Bezeichnung-offiziell":"name",
                       "GO-Nr":"gonr",
@@ -62,7 +63,9 @@ header_to_internal = {"DSt-Nr":"dstnr",
                       "Y-Koord.":"ykoord",
                       "KOORDZ":"hoehe",
                       "KOORDX":"xkoord",
+                      "KOORDN":"xkoord",
                       "KOORDY":"ykoord",
+                      "KOORDE":"ykoord",
                       "Verkehrsmittel":"verkehrsmittel",
                       }
 
@@ -144,12 +147,12 @@ def import_didok(db, options, csv_file):
         # only use rows which have a valid uic number and valid coordinates
         try:
             infos[dstnr_col] = int(infos[dstnr_col]) + 8500000
-            lat, lon = swisstowgs84.CHtoWGS((float(infos[ykoord_col])*1000,
-                                             float(infos[xkoord_col])*1000))
+            lat, lon = swisstowgs84.CHtoWGS((float(infos[ykoord_col]),
+                                             float(infos[xkoord_col])))
             for i in internal_int_columns:
                 if i in internal_to_column:
                     if infos[internal_to_column[i]] != "":
-                        infos[internal_to_column[i]] = int(infos[internal_to_column[i]])
+                        infos[internal_to_column[i]] = int(float(infos[internal_to_column[i]]))
         except:
             skipped_lines += 1
             continue
