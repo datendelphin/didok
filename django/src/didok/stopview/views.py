@@ -429,10 +429,10 @@ def search(request):
     if rr:
         osmres(OSMStops.objects.filter(osm_type='r', id=int(rr.group(2))))
 
-    qs = DIDOKStops.objects.filter(name__contains=search_string)
+    qs = DIDOKStops.objects.filter(name__icontains=search_string)
     didokres(qs.extra(select={'relevance': 'char_length(name)'}, order_by=['relevance']))
 
-    qs = OSMStops.objects.filter(osm_name__contains=search_string)
+    qs = OSMStops.objects.filter(osm_name__icontains=search_string)
     osmres(qs.extra(select={'relevance': 'char_length(osm_name)'}, order_by=['relevance']))
 
     return render(request, 'searchresults.html', {
