@@ -371,7 +371,7 @@ def import_osm(db, options):
 
     cur.executemany("""
         INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
-        VALUES (%%s, 'w', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_relations(relation_root))
+        VALUES (%%s, 'r', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_relations(relation_root))
 
 
     print "successfully inserted relations into database"
@@ -402,10 +402,11 @@ def import_osm(db, options):
             if uic_ref:
                 # iterate over all relation members
                 for item in relation:
-                    if item.tag == "way" and item.attrib["ref"] in w_ids:
-                        cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
-                    if item.tag == "node" and item.attrib["ref"] in n_ids:
-                        cur.execute("EXECUTE insert_uic_n (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
+                    if item.tag == "member": # item for relation member (there are also tags)
+                        if item.attrib["type"] == "way" and item.attrib["ref"] in w_ids:
+                            cur.execute("EXECUTE insert_uic_w (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
+                        if item.attrib["type"] == "node" and item.attrib["ref"] in n_ids:
+                            cur.execute("EXECUTE insert_uic_n (%s, %s, %s)", (uic_ref, r_id, item.attrib["ref"]))
 
     # add mode of transportation to OSM
     cur.execute("""UPDATE %s SET modeoftransport = 0""" % (options.osm_table))
