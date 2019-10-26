@@ -47,25 +47,36 @@ internal_int_columns = ["dstnr", "hoehe"]
 header_to_internal = {"DSt-Nr":"dstnr",
                       "Dst-Nr":"dstnr",
                       "Dst-Nr.":"dstnr",
-                      "\xef\xbb\xbfDst-Nr.":"dstnr",
+                      "BPUIC":"dstnr",
                       "Name":"name",
                       "Dst-Bezeichnung-offiziell":"name",
+                      "BEZEICHNUNG_OFFIZIELL":"name",
                       "GO-Nr":"gonr",
+                      "GO_NUMMER":"gonr",
                       "GO-Abk":"goabk",
+                      "GO_ABKUERZUNG_DE":"goabk",
                       "Gde-Nr":"gemeinde_nr",
+                      "BFS_NUMMER":"gemeinde_nr",
                       "Gde":"gemeinde",
+                      "GEMEINDENAME":"gemeinde",
                       "Kt.":"kanton",
+                      "KANTONSNAME":"kanton",
                       "BP":"bp",
+                      "IS_BETRIEBSPUNKT":"bp",
                       "VP":"vp",
                       "VPP":"vp",
+                      "IS_VERKEHRSPUNKT":"vp",
                       "Höhe":"hoehe",
+                      "Z_WGS84":"hoehe",
                       "X-Koord.":"xkoord",
                       "Y-Koord.":"ykoord",
                       "KOORDZ":"hoehe",
                       "KOORDX":"xkoord",
                       "KOORDN":"xkoord",
+                      "N_WGS84":"xwgs84",
                       "KOORDY":"ykoord",
                       "KOORDE":"ykoord",
+                      "E_WGS84":"ywgs84",
                       "Verkehrsmittel":"verkehrsmittel",
                       }
 
@@ -78,6 +89,7 @@ def table_exists(db, table_name):
 
 def import_didok(db, options, csv_file):
     cur = db.cursor()
+    chcoords=False
     
     if table_exists(db, options.import_table):
         cur.execute("DELETE FROM %s" % options.import_table)
@@ -106,7 +118,13 @@ def import_didok(db, options, csv_file):
     fulltable = options.match_table
 
     version = 0
-    didok = list(csv.reader(open(csv_file), delimiter=';', quotechar='"'))
+    with open(csv_file) as csv_fp:
+        # check for unnecessary UTF-8 BOM
+        if csv_fp.read(3) != '\xEF\xBB\xBF':
+	    # no BOM detected, read from start
+            csv_fp.seek(0)
+        didok = list(csv.reader(filter(lambda row: row[0]!='#', csv_fp), delimiter=';', quotechar='"'))
+        print(didok[0:5])
     headers = didok[0]
     del didok[0]
 
@@ -122,12 +140,21 @@ def import_didok(db, options, csv_file):
 
     if "xkoord" in internal_to_column:
         xkoord_col = internal_to_column["xkoord"]
+        chcoords = True
+    elif "xwgs84" in internal_to_column:
+        xkoord_col = internal_to_column["xwgs84"]
+        internal_to_column["xkoord"] = internal_to_column["xwgs84"]
+        del internal_to_column["xwgs84"]
     else:
         print "xkoord column not found"
         return
 
-    if "ykoord" in internal_to_column:
+    if chcoords and "ykoord" in internal_to_column:
         ykoord_col = internal_to_column["ykoord"]
+    elif not chcoords and "ywgs84" in internal_to_column:
+        ykoord_col = internal_to_column["ywgs84"]
+        internal_to_column["ykoord"] = internal_to_column["ywgs84"]
+        del internal_to_column["ywgs84"]
     else:
         print "ykoord column not found"
         return
@@ -146,9 +173,15 @@ def import_didok(db, options, csv_file):
         # match 
         # only use rows which have a valid uic number and valid coordinates
         try:
-            infos[dstnr_col] = int(infos[dstnr_col]) + 8500000
-            lat, lon = swisstowgs84.CHtoWGS((float(infos[ykoord_col]),
-                                             float(infos[xkoord_col])))
+            infos[dstnr_col] = int(infos[dstnr_col])
+            if infos[dstnr_col] < 100000:
+                infos[dstnr_col] += 8500000
+            if chcoords:
+                lat, lon = swisstowgs84.CHtoWGS((float(infos[ykoord_col]),
+                                                 float(infos[xkoord_col])))
+            else:
+                lat = float(infos[xkoord_col])
+                lon = float(infos[ykoord_col])
             for i in internal_int_columns:
                 if i in internal_to_column:
                     if infos[internal_to_column[i]] != "":
@@ -398,7 +431,10 @@ def import_osm(db, options):
             uic_ref = None
             for tag in relation:
                 if tag.tag == "tag" and tag.attrib["k"] == "uic_ref":
-                    uic_ref = tag.attrib["v"]
+                    try:
+                        uic_ref = int(tag.attrib["v"])
+                    except:
+                        uic_ref = None
             if uic_ref:
                 # iterate over all relation members
                 for item in relation:
