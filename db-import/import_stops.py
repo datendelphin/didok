@@ -40,32 +40,19 @@ osm_transport_keys = [('train',1),
                       ('funicular',64)]
 
 #didok column settings
-internal_text_columns = ["name", "gonr", "xkoord", "ykoord", "goabk",
-                         "gemeinde_nr", "gemeinde", "kanton", "bp",
-                         "vp", "vk", "verkehrsmittel"]
+internal_text_columns = ["name", "lname", "railway_ref", "xkoord", "ykoord", "verkehrsmittel",
+        "bezeichnung", "goabk_d", "goabk_f", "goabk_i"]
 internal_int_columns = ["dstnr", "hoehe"]
 header_to_internal = {"DSt-Nr":"dstnr",
                       "Dst-Nr":"dstnr",
                       "Dst-Nr.":"dstnr",
                       "BPUIC":"dstnr",
+                      "DS_NUMMER":"dstnr",
                       "Name":"name",
                       "Dst-Bezeichnung-offiziell":"name",
+                      "DS_BEZEICHNUNG_OFFIZIELL":"name",
                       "BEZEICHNUNG_OFFIZIELL":"name",
-                      "GO-Nr":"gonr",
-                      "GO_NUMMER":"gonr",
-                      "GO-Abk":"goabk",
-                      "GO_ABKUERZUNG_DE":"goabk",
-                      "Gde-Nr":"gemeinde_nr",
-                      "BFS_NUMMER":"gemeinde_nr",
-                      "Gde":"gemeinde",
-                      "GEMEINDENAME":"gemeinde",
-                      "Kt.":"kanton",
-                      "KANTONSNAME":"kanton",
-                      "BP":"bp",
-                      "IS_BETRIEBSPUNKT":"bp",
-                      "VP":"vp",
-                      "VPP":"vp",
-                      "IS_VERKEHRSPUNKT":"vp",
+                      "BEZEICHNUNG_LANG":"lname",
                       "Höhe":"hoehe",
                       "Z_WGS84":"hoehe",
                       "X-Koord.":"xkoord",
@@ -78,7 +65,14 @@ header_to_internal = {"DSt-Nr":"dstnr",
                       "KOORDE":"ykoord",
                       "E_WGS84":"ywgs84",
                       "Verkehrsmittel":"verkehrsmittel",
+                      "BPVH_VERKEHRSMITTEL_TEXT_EN":"verkehrsmittel",
+                      "ABKUERZUNG": "railway_ref",
+                      "GO_ABKUERZUNG_DE": "goabk_d",
+                      "GO_ABKUERZUNG_FR": "goabk_f",
+                      "GO_ABKUERZUNG_IT": "goabk_i",
+                      "BPTF_ART_BEZEICHNUNG_DE": "bezeichnung",
                       }
+check_conditions = {"IS_HALTESTELLE": "1"};
 
 def table_exists(db, table_name):
     cur = db.cursor()
@@ -124,15 +118,18 @@ def import_didok(db, options, csv_file):
 	    # no BOM detected, read from start
             csv_fp.seek(0)
         didok = list(csv.reader(filter(lambda row: row[0]!='#', csv_fp), delimiter=';', quotechar='"'))
-        print(didok[0:5])
     headers = didok[0]
     del didok[0]
 
     # create translation of columns to internal fields
     internal_to_column = {}
+    column_to_check_condition = {}
     for i,header in enumerate(headers):
-        if header.strip() in header_to_internal:
-            internal_to_column[header_to_internal[header.strip()]] = i
+        h = header.strip()
+        if h in header_to_internal:
+            internal_to_column[header_to_internal[h]] = i
+        if h in check_conditions:
+            column_to_check_condition[i] = check_conditions[h]
 
     print "detected fields"
     for i in internal_to_column:
@@ -170,6 +167,13 @@ def import_didok(db, options, csv_file):
     for row in didok:
         infos = list(row);
         infos = [x.strip() for x in infos]
+        # check conditions
+        skip_item = False
+        for col,val in column_to_check_condition.iteritems():
+            if infos[col] != val:
+                skip_item = True
+        if skip_item:
+            continue
         # match 
         # only use rows which have a valid uic number and valid coordinates
         try:

@@ -384,10 +384,9 @@ def errorHttpResponse(msg):
 
 def infoDidok(request, in_id):
     dstop = DIDOKStops.objects.get(pk=in_id)
-    opshort = re.search('^[^-]+', dstop.goabk).group(0)
 
     return render(request, 'vector/didok_osm.osm',
-            {'object' : dstop, 'opshort': opshort})
+            {'object' : dstop})
 
 def search(request):
     osm_results=[]
