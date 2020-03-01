@@ -401,6 +401,8 @@ def import_osm(db, options):
                     if node in relation_nodes:
                         lat += float(relation_nodes[node].attrib["lat"])
                         lon += float(relation_nodes[node].attrib["lon"])
+                if len(nodes) == 0:
+                    continue
                 lat /= len(nodes)
                 lon /= len(nodes)
                 geom = "SRID=4326;POINT(%s %s)" % (lon, lat)
