@@ -68,5 +68,6 @@ INSTALLED_APPS = (
      'didok.stopview',
      'django.contrib.contenttypes',
      'django.contrib.auth',
+     'django.contrib.gis',
 )
 

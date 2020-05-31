@@ -21,8 +21,6 @@ class DIDOKStops(models.Model):
     goabk_i = models.TextField(null=True)
     import_geom = models.GeometryField(srid=4326)
 
-    objects = models.GeoManager()
-
     def connected_with(self):
         cursor = connection.cursor()
 
@@ -53,10 +51,8 @@ class OSMStops(models.Model):
     tags = HStoreField()
     osm_geom = models.GeometryField(srid=4326)
     uic_ref = models.IntegerField()
-    user = models.ForeignKey(OSMUsers)
+    user = models.ForeignKey(OSMUsers, on_delete=models.CASCADE)
     version = models.IntegerField()
-
-    objects = models.GeoManager()
 
     def connected_with(self):
         if self.uic_ref is None:
@@ -72,10 +68,9 @@ class OSMStops(models.Model):
         db_table = u'osm_stops'
 
 class StopMatch(models.Model):
-    osm = models.ForeignKey(OSMStops)
-    didok = models.ForeignKey(DIDOKStops)
+    osm = models.ForeignKey(OSMStops, on_delete=models.CASCADE)
+    didok = models.ForeignKey(DIDOKStops, on_delete=models.CASCADE)
     dist = models.FloatField(primary_key = True)
-    objects = models.GeoManager()
 
     class Meta:
         db_table = u'match'

@@ -3,7 +3,7 @@ Web interface for comparing DIDOK and OSM data
 Requirements:
 
 python3
-django 1.8 or later
+django 2.2 or later
 psycopg2
 
 Installation:

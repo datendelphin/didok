@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: UTF8 -*-
 """
 Import osm and didok stops and match them
@@ -9,8 +9,8 @@ import re
 import sys
 import csv
 import itertools
-import httplib
-import urllib
+import http.client
+import urllib.request, urllib.parse, urllib.error
 import xml.etree.ElementTree as ET
 
 import psycopg2
@@ -114,10 +114,10 @@ def import_didok(db, options, csv_file):
     version = 0
     with open(csv_file) as csv_fp:
         # check for unnecessary UTF-8 BOM
-        if csv_fp.read(3) != '\xEF\xBB\xBF':
+        if csv_fp.read(1) != '\uFEFF':
 	    # no BOM detected, read from start
             csv_fp.seek(0)
-        didok = list(csv.reader(filter(lambda row: row[0]!='#', csv_fp), delimiter=';', quotechar='"'))
+        didok = list(csv.reader([row for row in csv_fp if row[0]!='#'], delimiter=';', quotechar='"'))
     headers = didok[0]
     del didok[0]
 
@@ -131,9 +131,9 @@ def import_didok(db, options, csv_file):
         if h in check_conditions:
             column_to_check_condition[i] = check_conditions[h]
 
-    print "detected fields"
+    print("detected fields")
     for i in internal_to_column:
-        print "    %s: column %d" % (i, internal_to_column[i])
+        print("    %s: column %d" % (i, internal_to_column[i]))
 
     if "xkoord" in internal_to_column:
         xkoord_col = internal_to_column["xkoord"]
@@ -143,7 +143,7 @@ def import_didok(db, options, csv_file):
         internal_to_column["xkoord"] = internal_to_column["xwgs84"]
         del internal_to_column["xwgs84"]
     else:
-        print "xkoord column not found"
+        print("xkoord column not found")
         return
 
     if chcoords and "ykoord" in internal_to_column:
@@ -153,23 +153,23 @@ def import_didok(db, options, csv_file):
         internal_to_column["ykoord"] = internal_to_column["ywgs84"]
         del internal_to_column["ywgs84"]
     else:
-        print "ykoord column not found"
+        print("ykoord column not found")
         return
 
     if "dstnr" in internal_to_column:
         dstnr_col = internal_to_column["dstnr"]
     else:
-        print "dstnr column not found"
+        print("dstnr column not found")
         return
     
-    print "Starting import " + csv_file
+    print("Starting import " + csv_file)
     skipped_lines = 0
     for row in didok:
         infos = list(row);
         infos = [x.strip() for x in infos]
         # check conditions
         skip_item = False
-        for col,val in column_to_check_condition.iteritems():
+        for col,val in column_to_check_condition.items():
             if infos[col] != val:
                 skip_item = True
         if skip_item:
@@ -194,7 +194,7 @@ def import_didok(db, options, csv_file):
             skipped_lines += 1
             continue
 
-        fields = (internal_to_column.keys())
+        fields = (list(internal_to_column.keys()))
         values = [infos[internal_to_column[field]] for field in fields]
 
         query = "INSERT INTO "
@@ -205,7 +205,7 @@ def import_didok(db, options, csv_file):
         cur.execute(query, values + [version, lon, lat])
 
     cur.execute("UPDATE %s SET import_geom = NULL WHERE xkoord = '000.000'" % (options.import_table))
-    print "skipped %d lines in import of didok data" % (skipped_lines,)
+    print("skipped %d lines in import of didok data" % (skipped_lines,))
     db.commit()
 
     # create annotation table if it doesn't exist
@@ -222,7 +222,7 @@ def import_didok(db, options, csv_file):
 
 
 def import_osm(db, options):
-    print "import osm stops into %s" % (options.osm_table)
+    print("import osm stops into %s" % (options.osm_table))
     psycopg2.extras.register_hstore(db)
     cur = db.cursor()
     cur.execute("""
@@ -275,7 +275,7 @@ def import_osm(db, options):
     overpass_filter += "\n".join(tags_conditionals)
     overpass_filter += ");\n"
     overpass_query = overpass_filter + "out meta;"
-    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+    overpass_query = "/api/interpreter?" + urllib.parse.urlencode({'data' : overpass_query})
 
     user_names = dict()
     def extract_users(root, user_names):
@@ -286,12 +286,12 @@ def import_osm(db, options):
     #nodes
     #print overpass_query.replace(table_placeholder,'node');
 
-    print "Query nodes from overpass"
+    print("Query nodes from overpass")
 
-    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn = http.client.HTTPSConnection("overpass.osm.ch")
     overpass_conn.request("GET", overpass_query.replace(table_placeholder,'node'))
     overpass_res = overpass_conn.getresponse()
-    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing node xml"
+    print("Query returned", overpass_res.status, overpass_res.reason, ", parsing node xml")
 
     node_root = ET.fromstring(overpass_res.read())
 
@@ -306,7 +306,7 @@ def import_osm(db, options):
         INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
         VALUES (%%s, 'n', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_nodes(node_root))
 
-    print "successfully inserted nodes into database"
+    print("successfully inserted nodes into database")
 
     extract_users(node_root, user_names)
 
@@ -315,17 +315,17 @@ def import_osm(db, options):
     
     #ways
 
-    print "Query ways from overpass"
+    print("Query ways from overpass")
 
     overpass_query = "(" + overpass_filter + ">;\n);\nout meta;"
-    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+    overpass_query = "/api/interpreter?" + urllib.parse.urlencode({'data' : overpass_query})
 
     #print overpass_query.replace(table_placeholder,'way');
 
-    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn = http.client.HTTPSConnection("overpass.osm.ch")
     overpass_conn.request("GET", overpass_query.replace(table_placeholder,'way'))
     overpass_res = overpass_conn.getresponse()
-    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing way xml"
+    print("Query returned", overpass_res.status, overpass_res.reason, ", parsing way xml")
 
     way_root = ET.fromstring(overpass_res.read())
 
@@ -354,7 +354,7 @@ def import_osm(db, options):
         INSERT INTO %s (id, osm_type, tags, user_id, version, osm_geom)
         VALUES (%%s, 'w', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_ways(way_root))
 
-    print "successfully inserted ways into database"
+    print("successfully inserted ways into database")
 
     extract_users(way_root, user_names)
 
@@ -363,17 +363,17 @@ def import_osm(db, options):
 
     #relations
 
-    print "Query relations from overpass"
+    print("Query relations from overpass")
 
     overpass_query = "(" + overpass_filter + ">;\n);\nout meta;"
-    overpass_query = "/api/interpreter?" + urllib.urlencode({'data' : overpass_query})
+    overpass_query = "/api/interpreter?" + urllib.parse.urlencode({'data' : overpass_query})
 
     #print overpass_query.replace(table_placeholder,'relation');
 
-    overpass_conn = httplib.HTTPSConnection("overpass.osm.ch")
+    overpass_conn = http.client.HTTPSConnection("overpass.osm.ch")
     overpass_conn.request("GET", overpass_query.replace(table_placeholder,'relation'))
     overpass_res = overpass_conn.getresponse()
-    print "Query returned", overpass_res.status, overpass_res.reason, ", parsing relation xml"
+    print("Query returned", overpass_res.status, overpass_res.reason, ", parsing relation xml")
 
     relation_root = ET.fromstring(overpass_res.read())
 
@@ -413,7 +413,7 @@ def import_osm(db, options):
         VALUES (%%s, 'r', %%s, %%s, %%s, %%s)""" % (options.osm_table), insert_relations(relation_root))
 
 
-    print "successfully inserted relations into database"
+    print("successfully inserted relations into database")
 
     extract_users(relation_root, user_names)
 
@@ -474,7 +474,7 @@ def import_osm(db, options):
             )""" % (options.username_table))
 
     cur.executemany("""INSERT INTO %s VALUES (%%s, %%s)""" % (options.username_table),
-            user_names.items())
+            list(user_names.items()))
 
     db.commit()
     cur.execute('ANALYZE')
@@ -499,7 +499,7 @@ def import_osm(db, options):
     db.commit()
 
 def matches(db, options):
-    print "calculating matches into %s" % (options.match_table)
+    print("calculating matches into %s" % (options.match_table))
     cur = db.cursor()
 
     if table_exists(db, options.match_table):
@@ -522,7 +522,7 @@ def matches(db, options):
 
 
     # Distances are just for display.
-    cur.execute("""UPDATE %s SET dist=ST_distance_spheroid(
+    cur.execute("""UPDATE %s SET dist=ST_distancespheroid(
                                      ST_transform(o.osm_geom, 4326), 
                                      ST_transform(i.import_geom, 4326),
                                      'SPHEROID["WGS 84",6378137,298.257223563,
