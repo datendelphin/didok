@@ -5,16 +5,16 @@
     <tag k="name" v="{{object.name}}" />
     <tag k="uic_name" v="{{object.name}}" />
     <tag k="uic_ref" v="{{object.dstnr}}" />
-    <tag k="ele" v="{{object.hoehe}}" />{% if object.verkehrsmittel = "Bus" %}
+    <tag k="ele" v="{{object.hoehe}}" />{% if object.verkehrsmittel == "Bus" %}
     <tag k="highway" v="bus_stop" />
-{% endif %}{% if object.verkehrsmittel = "Zug" %}
+{% endif %}{% if object.verkehrsmittel == "Zug" %}
     <tag k="railway" v="station" />
-{% endif %}{% if object.verkehrsmittel = "Schiff" %}
+{% endif %}{% if object.verkehrsmittel == "Schiff" %}
     <tag k="amenity" v="ferry_termianl" />
     <tag k="cargo" v="passangers" />
-{% endif %}{% if object.verkehrsmittel = "Luftseilbahn" %}
+{% endif %}{% if object.verkehrsmittel == "Luftseilbahn" %}
     <tag k="aerialway" v="station" />
-{% endif %}{% if object.verkehrsmittel = "Tram" %}
+{% endif %}{% if object.verkehrsmittel == "Tram" %}
     <tag k="railway" v="tram_stop" />
 {% endif %}    <tag k="source" v="opentransportdata.swiss" />
     <tag k="railway:ref" v="{{object.railway_ref}}" />
